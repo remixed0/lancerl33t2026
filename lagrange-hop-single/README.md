@@ -20,12 +20,33 @@ js/planets.js       planet / Earth / relay station models, shaders and textures
 js/scene.js         Three.js scene setup, level building, per-frame sync
 js/camera.js        TOP / CHASE / ISO cameras
 js/progress.js      unlocks, best stars, level bar, mission log sidebar
+js/bob.js           Bob the alien co-pilot: sends him game events, shows his speech bubble
 js/game.js          level loading, flight updates, launch, crash and victory
 js/autopilot.js     launch-window route search
 js/ui.js            aim bar, sliders, buttons, modals, resize
 js/input.js         mouse, touch and keyboard
 js/main.js          main loop and start-up (loaded last)
+bob/                Bob himself: 3D alien head + 45 voice lines (shown in an iframe)
 ```
+
+## Bob, the alien co-pilot
+A 3D alien head in the bottom-left corner. He has no buttons and takes no input: he floats, blinks and looks around, and **speaks only when something happens in the game**, playing a pre-recorded MP3 (`bob/audio/`) with his mouth moving, a matching face and a speech bubble:
+
+| Game event | Bob says |
+| --- | --- |
+| A mission loads | that mission's briefing (missions 1-8) |
+| Crash into Earth, the Moon, Mars, Venus, Jupiter, Saturn or Neptune | a line about that body |
+| Crash into any other body | a general planet crash line |
+| Hit an asteroid or debris | a hazard line |
+| Probe drifts off the map | a lost-in-space line |
+| 3rd crash in a row (and every other one after) | a streak line |
+| Launch (now and then) | a launch line |
+| Autopilot starts | an autopilot line |
+| Mission captured (1-2★ / 3★) | a victory line / a 3-star line |
+| Mission 8 captured | the finale |
+| Sitting at the launch pad for 45 s | an idle line |
+
+The **SFX** button mutes his voice too (the speech bubble still shows). Browsers allow sound only after the first click, so a briefing that loads before then is replayed on that click. The game calls `bob.event(...)` from `js/game.js` and `js/autopilot.js`; `js/bob.js` passes it to `bob/` with `postMessage`. Bob's source project: https://github.com/imatsko-pcc/alien-head-3d
 
 ## Controls
 - Drag from Earth and release to launch.

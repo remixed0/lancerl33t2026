@@ -30,6 +30,7 @@ function startAutopilot(lead = AUTOPILOT_LEAD_TICKS) {
   };
   document.getElementById('autoBtn').classList.add('auto-active');
   document.getElementById('hintText').textContent = 'Autopilot computing routes for the next launch windows...';
+  bob.event('autopilot');
 }
 
 function cancelAutopilot() {
@@ -101,6 +102,6 @@ function updateAutopilot() {
     ap.refined = false;
   } else if (ap.phase === 'wait' && tickCount >= ap.launchTick) {
     cancelAutopilot();
-    launch();
+    launch(true);
   }
 }

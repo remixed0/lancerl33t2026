@@ -22,6 +22,7 @@ function loadLevel(idx) {
   ghostTrail = [];
   resetProbeToEarth();
   document.getElementById('victoryModal').classList.add('hidden');
+  bob.event('mission', { number: currentLevelIndex + 1 });
 }
 
 function resetProbeToEarth() {
@@ -154,14 +155,14 @@ function updateGame(dt) {
     // Check Collision: Earth
     const earthPos = getCoords(currentLevel.earth);
     if (Math.hypot(probe.x - earthPos.x, probe.y - earthPos.y) <= currentLevel.earth.radius) {
-      triggerCrash("Probe crashed into Earth's atmosphere.");
+      triggerCrash("Probe crashed into Earth's atmosphere.", { body: 'Earth' });
     }
 
     // Check Collision: Planets
     currentLevel.bodies.forEach(b => {
       const bPos = getBodyPos(b);
       if (Math.hypot(probe.x - bPos.x, probe.y - bPos.y) <= b.radius) {
-        triggerCrash(`Surface impact on ${b.name}!`);
+        triggerCrash(`Surface impact on ${b.name}!`, { body: b.name });
       }
     });
 
@@ -169,7 +170,7 @@ function updateGame(dt) {
     currentLevel.hazards.forEach(hz => {
       const hzPos = getBodyPos(hz);
       if (Math.hypot(probe.x - hzPos.x, probe.y - hzPos.y) <= hz.radius + probe.radius) {
-        triggerCrash(`Destroyed by collision with ${hz.name}!`);
+        triggerCrash(`Destroyed by collision with ${hz.name}!`, { hazard: true, body: hz.name });
       }
     });
 
@@ -212,21 +213,26 @@ function updateGame(dt) {
   }
 }
 
-function triggerCrash(reason) {
+function triggerCrash(reason, what) {
+  const first = probe.alive; // several collisions can register in the same frame; Bob comments once
   probe.alive = false;
   gameState = 'CRASHED';
   sfx.playCrash();
   spawnExplosion(probe.x, probe.y, '#ef4444');
   document.getElementById('hintText').textContent = `CRITICAL FAILURE: ${reason} Press Reload to retry.`;
+  if (first) bob.event(what && what.hazard ? 'hazard' : 'crash', what);
 }
 
 function triggerLost(reason) {
+  const first = probe.alive;
   probe.alive = false;
   gameState = 'LOST';
   document.getElementById('hintText').textContent = reason + " Press Reload to aim again.";
+  if (first) bob.event('lost');
 }
 
 function triggerVictory() {
+  const first = probe.alive;
   gameState = 'CAPTURED';
   probe.alive = false;
   sfx.playVictory();
@@ -265,6 +271,10 @@ function triggerVictory() {
   document.getElementById('starContainer').innerHTML = starIcons;
 
   document.getElementById('victoryModal').classList.remove('hidden');
+  if (first) {
+    if (isLast) bob.event('finale');
+    else bob.event('victory', { stars: starsCount });
+  }
 }
 
 function updateTelemetryUI() {
@@ -281,7 +291,7 @@ function updateTelemetryUI() {
   document.getElementById('telemetryTokens').textContent = `${collected} / ${currentLevel.beacons.length}`;
 }
 
-function launch() {
+function launch(byAutopilot) {
   if (gameState !== 'AIMING' || !aim.set) return;
   const av = getAimVector();
   const lp = getLaunchPoint(av.angle);
@@ -298,4 +308,5 @@ function launch() {
   sfx.playLaunch();
   spawnThrustParticles(probe.x, probe.y, probe.vx, probe.vy, 18, '#38bdf8');
   document.getElementById('hintText').textContent = "Probe in flight! Monitoring orbital telemetry & gravitational forces...";
+  if (!byAutopilot) bob.event('launch'); // Bob already commented when the autopilot started
 }

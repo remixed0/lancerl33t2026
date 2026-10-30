@@ -76,7 +76,14 @@
   </header>
 
   <!-- Level Select & Guidance Bar (Bottom) -->
-  <div class="absolute bottom-4 left-0 right-0 z-10 px-4 flex flex-col sm:flex-row items-center justify-between gap-3 pointer-events-none">
+  <!-- Bob, the alien co-pilot: no controls, he only speaks when game events happen (bob/ + js/bob.js).
+       He sits above the pop-ups (z-35) so his victory lines stay readable; clicks pass through him. -->
+  <div id="bobDock" class="bob-dock hidden sm:block">
+    <p id="bobBubble" class="bob-bubble font-mono-tech" role="status" aria-live="polite"></p>
+    <iframe id="bobFrame" src="bob/index.html?transparent=1&amp;subtitles=0" allow="autoplay" title="Bob, the alien co-pilot" tabindex="-1"></iframe>
+  </div>
+
+  <div class="absolute bottom-4 left-0 right-0 z-10 px-4 sm:pl-[144px] flex flex-col sm:flex-row items-center justify-between gap-3 pointer-events-none">
     <!-- Slingshot Aim Guidance -->
     <div id="aimHint" class="hidden lg:flex max-w-xs xl:max-w-md bg-slate-900/90 backdrop-blur-md px-4 py-2 rounded-full border border-cyan-500/30 text-xs font-mono-tech text-cyan-300 items-center gap-2 pointer-events-auto">
       <span class="inline-block w-2 h-2 shrink-0 rounded-full bg-cyan-400 animate-ping"></span>
@@ -223,6 +230,7 @@
   <script src="js/scene.js"></script>
   <script src="js/camera.js"></script>
   <script src="js/progress.js"></script>
+  <script src="js/bob.js"></script>
   <script src="js/game.js"></script>
   <script src="js/autopilot.js"></script>
   <script src="js/ui.js"></script>
