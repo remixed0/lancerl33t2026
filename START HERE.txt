@@ -1,0 +1,23 @@
+ILYA'S VERSION OF LAGRANGE HOP
+==============================
+
+TO PLAY
+  Open the "lagrange-hop-single" folder and double-click "Play Lagrange Hop.bat".
+  (There is also a "Play Ilya's Game" shortcut on your Desktop.)
+  A small black window opens and the game starts in your browser.
+  Keep that window open while you play; close it to stop the game.
+
+WHAT'S IN HERE
+  lagrange-hop-single\          the game (8 missions, Bob the alien co-pilot, tutorial)
+    index.html                  the game page
+    js\                         game code (js\tutorial.js = Bob's tutorial, js\bob.js = Bob's events)
+    bob\                        Bob himself: 3D alien head and his voice lines (bob\audio\*.mp3)
+    Play Lagrange Hop.bat       double-click to play
+
+GIT
+  This folder is the git branch "ilya-version-of-the-game" of github.com/remixed0/lancerl33t2026.
+  Changes you commit here go on that branch.
+
+OTHER PROJECT FOLDERS (in C:\Users\ilya\Projects)
+  alien-voice-lines\            all of Bob's voice lines as MP3s, lines.csv, and the Varity intro zip
+  alien-head-3d\                Bob's source project (github.com/imatsko-pcc/alien-head-3d)
