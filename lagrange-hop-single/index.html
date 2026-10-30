@@ -1,0 +1,1727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Lagrange Hop 3D - Gravity Assist Trajectory Puzzle</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS2DRenderer.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@500;700;900&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      background-color: #030712;
+      overflow: hidden;
+    }
+    .font-mono-tech {
+      font-family: 'Share Tech Mono', monospace;
+    }
+    .font-orbitron {
+      font-family: 'Orbitron', sans-serif;
+    }
+    /* Glow utilities */
+    .glow-cyan {
+      box-shadow: 0 0 20px rgba(6, 182, 212, 0.45);
+    }
+    .glow-amber {
+      box-shadow: 0 0 20px rgba(245, 158, 11, 0.45);
+    }
+    .glow-text-cyan {
+      text-shadow: 0 0 10px rgba(6, 182, 212, 0.7);
+    }
+    .glow-text-emerald {
+      text-shadow: 0 0 10px rgba(16, 185, 129, 0.7);
+    }
+    canvas#gameCanvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+    /* In-scene labels rendered by CSS2DRenderer */
+    .scene-label {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px;
+      color: #e2e8f0;
+      white-space: nowrap;
+      pointer-events: none;
+      text-shadow: 0 0 6px rgba(0, 0, 0, 0.95);
+    }
+  </style>
+</head>
+<body class="relative w-screen h-screen overflow-hidden text-slate-100 bg-slate-950">
+
+  <!-- Interactive Game Canvas (Three.js WebGL) -->
+  <canvas id="gameCanvas" class="absolute inset-0 z-0"></canvas>
+
+  <!-- HUD: Top Header & Telemetry Dashboard -->
+  <header class="absolute top-0 left-0 right-0 z-10 p-3 sm:p-5 flex flex-wrap items-center justify-between pointer-events-none gap-2">
+    <!-- Brand / Level Info -->
+    <div class="flex items-center gap-3 bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-xl border border-cyan-500/30 glow-cyan pointer-events-auto">
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="inline-block w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></span>
+          <h1 class="text-xs sm:text-sm font-orbitron font-black tracking-widest text-cyan-400">LAGRANGE HOP</h1>
+        </div>
+        <p id="levelTitle" class="text-sm sm:text-base font-mono-tech font-bold text-white tracking-wide">MISSION 1: LUNAR SLINGSHOT</p>
+      </div>
+    </div>
+
+    <!-- Telemetry Stats -->
+    <div class="bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-xl border border-slate-700/60 font-mono-tech text-xs sm:text-sm flex items-center gap-4 sm:gap-6 pointer-events-auto">
+      <div>
+        <span class="text-slate-400 text-[10px] block uppercase">Velocity (Δv)</span>
+        <span id="telemetrySpeed" class="text-emerald-400 font-bold text-base glow-text-emerald">0.0 km/s</span>
+      </div>
+      <div>
+        <span class="text-slate-400 text-[10px] block uppercase">Gravity Slingshot</span>
+        <span id="telemetryBoost" class="text-cyan-300 font-bold text-base">1.0x</span>
+      </div>
+      <div>
+        <span class="text-slate-400 text-[10px] block uppercase">Fuel Remaining</span>
+        <div class="flex items-center gap-1.5 mt-0.5">
+          <div class="w-16 sm:w-24 h-2.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+            <div id="fuelBar" class="h-full bg-gradient-to-r from-amber-500 to-emerald-400 transition-all duration-150" style="width: 100%;"></div>
+          </div>
+          <span id="fuelVal" class="text-xs text-amber-300">100%</span>
+        </div>
+      </div>
+      <div>
+        <span class="text-slate-400 text-[10px] block uppercase">Beacons Captured</span>
+        <span id="telemetryTokens" class="text-yellow-400 font-bold text-base">0 / 3</span>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="flex items-center gap-2 pointer-events-auto">
+      <button id="btnCam" class="px-3 py-2 bg-slate-900/80 hover:bg-slate-800 rounded-lg border border-slate-700 text-slate-300 hover:text-white transition flex items-center gap-1.5 text-xs font-mono-tech" title="Cycle camera view (C)">
+        <svg class="w-4 h-4 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+        <span id="camLabel">CAM: TOP</span>
+      </button>
+      <button id="btnAudioToggle" class="px-3 py-2 bg-slate-900/80 hover:bg-slate-800 rounded-lg border border-slate-700 text-slate-300 hover:text-white transition flex items-center gap-1.5 text-xs font-mono-tech" title="Toggle Audio">
+        <svg id="audioIcon" class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path></svg>
+        <span id="audioLabel">SFX ON</span>
+      </button>
+      <button id="btnReset" class="px-3 py-2 bg-slate-900/80 hover:bg-slate-800 rounded-lg border border-slate-700 text-slate-300 hover:text-white transition flex items-center gap-1.5 text-xs font-mono-tech">
+        <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+        <span>RELOAD PROBE</span>
+      </button>
+      <button id="btnHelp" class="px-3 py-2 bg-cyan-950/80 hover:bg-cyan-900 rounded-lg border border-cyan-500/40 text-cyan-300 transition text-xs font-mono-tech">
+        MANUAL
+      </button>
+    </div>
+  </header>
+
+  <!-- Level Select & Guidance Bar (Bottom) -->
+  <div class="absolute bottom-4 left-0 right-0 z-10 px-4 flex flex-col sm:flex-row items-center justify-between gap-3 pointer-events-none">
+    <!-- Slingshot Aim Guidance -->
+    <div id="aimHint" class="bg-slate-900/90 backdrop-blur-md px-4 py-2 rounded-full border border-cyan-500/30 text-xs sm:text-sm font-mono-tech text-cyan-300 flex items-center gap-2 pointer-events-auto">
+      <span class="inline-block w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+      <span id="hintText">Drag back from Earth to aim trajectory, release to launch!</span>
+    </div>
+
+    <!-- Level Selector Bar -->
+    <div class="flex items-center gap-2 bg-slate-900/90 backdrop-blur-md p-1.5 rounded-xl border border-slate-800 pointer-events-auto">
+      <span class="text-[11px] font-mono-tech uppercase text-slate-400 px-2">MISSION:</span>
+      <button data-level="0" class="lvl-btn px-3 py-1 rounded-lg text-xs font-orbitron font-bold bg-cyan-500 text-slate-950">01</button>
+      <button data-level="1" class="lvl-btn px-3 py-1 rounded-lg text-xs font-orbitron font-bold bg-slate-800 text-slate-300 hover:bg-slate-700">02</button>
+      <button data-level="2" class="lvl-btn px-3 py-1 rounded-lg text-xs font-orbitron font-bold bg-slate-800 text-slate-300 hover:bg-slate-700">03</button>
+    </div>
+  </div>
+
+  <!-- Modal: Mission Complete / Debrief Screen -->
+  <div id="victoryModal" class="hidden absolute inset-0 z-30 bg-slate-950/85 backdrop-blur-lg flex items-center justify-center p-4">
+    <div class="bg-slate-900 border-2 border-emerald-500/80 rounded-2xl p-6 sm:p-8 max-w-md w-full glow-cyan text-center relative overflow-hidden">
+      <div class="absolute -top-12 -right-12 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl"></div>
+      <div class="w-14 h-14 mx-auto mb-4 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center border border-emerald-500/40">
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+      </div>
+      <h2 class="text-2xl font-orbitron font-black text-emerald-400 tracking-wider mb-1">TARGET CAPTURED!</h2>
+      <p id="victoryDesc" class="text-xs sm:text-sm text-slate-300 font-mono-tech mb-5">Telemetry confirms safe insertion into target orbital capture envelope.</p>
+
+      <!-- Stars & Metrics -->
+      <div class="bg-slate-950/80 rounded-xl p-4 border border-slate-800 mb-6 font-mono-tech text-left space-y-2 text-xs sm:text-sm">
+        <div class="flex justify-between items-center text-slate-400">
+          <span>Flight Time:</span>
+          <span id="metricTime" class="text-slate-200 font-bold">12.4s</span>
+        </div>
+        <div class="flex justify-between items-center text-slate-400">
+          <span>Fuel Efficiency:</span>
+          <span id="metricFuel" class="text-emerald-400 font-bold">84% (+200 pts)</span>
+        </div>
+        <div class="flex justify-between items-center text-slate-400">
+          <span>Max Slingshot Assist:</span>
+          <span id="metricBoost" class="text-cyan-400 font-bold">2.4x Multiplier</span>
+        </div>
+        <div class="flex justify-between items-center text-slate-400">
+          <span>Science Beacons:</span>
+          <span id="metricBeacons" class="text-yellow-400 font-bold">3 / 3</span>
+        </div>
+        <div class="pt-2 border-t border-slate-800 flex justify-between items-center text-base">
+          <span class="text-slate-300 font-bold">Mission Rating:</span>
+          <div id="starContainer" class="flex text-amber-400 text-lg">
+            ★★★
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex gap-3">
+        <button id="modalRetryBtn" class="flex-1 py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-orbitron text-xs font-bold transition">RETRY</button>
+        <button id="modalNextBtn" class="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-orbitron text-xs font-extrabold transition shadow-lg">NEXT MISSION</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Instructions / Flight Manual -->
+  <div id="manualModal" class="hidden absolute inset-0 z-30 bg-slate-950/85 backdrop-blur-lg flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-cyan-500/50 rounded-2xl p-6 sm:p-8 max-w-lg w-full font-mono-tech text-xs sm:text-sm space-y-4 text-slate-300 relative">
+      <button id="closeManualBtn" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg font-bold">✕</button>
+      <h3 class="text-xl font-orbitron font-bold text-cyan-400">FLIGHT CONTROLLER MANUAL</h3>
+      <div class="space-y-3">
+        <div class="flex items-start gap-3">
+          <div class="w-6 h-6 rounded bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-xs shrink-0">1</div>
+          <p><strong class="text-white">Slingshot Aiming:</strong> Click/touch on Earth and drag backward to apply delta-V thrust. Release to launch the probe into space.</p>
+        </div>
+        <div class="flex items-start gap-3">
+          <div class="w-6 h-6 rounded bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-xs shrink-0">2</div>
+          <p><strong class="text-white">Predictive Trajectory:</strong> The glowing dotted line simulates the future N-body gravitational trajectory in real-time before you fire.</p>
+        </div>
+        <div class="flex items-start gap-3">
+          <div class="w-6 h-6 rounded bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-xs shrink-0">3</div>
+          <p><strong class="text-white">Gravity Assist (Slingshot):</strong> Skim close to massive celestial bodies (like Moon or Jupiter) to gain kinetic energy and velocity without spending extra fuel.</p>
+        </div>
+        <div class="flex items-start gap-3">
+          <div class="w-6 h-6 rounded bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-xs shrink-0">4</div>
+          <p><strong class="text-white">Mission Success:</strong> Collect yellow scientific beacon telemetry nodes, then arrive inside the dashed green orbital capture perimeter of the destination planet.</p>
+        </div>
+        <div class="flex items-start gap-3">
+          <div class="w-6 h-6 rounded bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-xs shrink-0">5</div>
+          <p><strong class="text-white">Camera Views:</strong> Press CAM (or the C key) to cycle TOP tactical, CHASE (follows the probe in flight) and ISO perspective views.</p>
+        </div>
+      </div>
+      <button id="startFromManualBtn" class="w-full mt-4 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-orbitron font-bold transition">ENGAGE MISSION</button>
+    </div>
+  </div>
+
+  <script>
+    // --- SYNTHESIZED SOUND FX (Web Audio API - No external files) ---
+    class SoundFX {
+      constructor() {
+        this.ctx = null;
+        this.enabled = true;
+      }
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) {
+            this.ctx = new AudioContext();
+          }
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+      playLaunch() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(120, now);
+        osc.frequency.exponentialRampToValueAtTime(540, now + 0.35);
+
+        // Low pass filter for rocket burst sensation
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(400, now);
+        filter.frequency.exponentialRampToValueAtTime(2500, now + 0.2);
+
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.45);
+      }
+      playGravityBoost() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(320, now);
+        osc.frequency.exponentialRampToValueAtTime(880, now + 0.25);
+        gain.gain.setValueAtTime(0.18, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.3);
+      }
+      playBeacon() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(587.33, now); // D5
+        osc.frequency.setValueAtTime(880, now + 0.08); // A5
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.35);
+      }
+      playCrash() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        // White noise buffer
+        const bufferSize = this.ctx.sampleRate * 0.4;
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buffer;
+
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(800, now);
+        filter.frequency.exponentialRampToValueAtTime(80, now + 0.4);
+
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(0.4, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+        noise.start(now);
+      }
+      playVictory() {
+        if (!this.enabled || !this.ctx) return;
+        const notes = [440, 554.37, 659.25, 880]; // A major arpeggio
+        notes.forEach((freq, idx) => {
+          const now = this.ctx.currentTime + idx * 0.11;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.4);
+        });
+      }
+    }
+    const sfx = new SoundFX();
+
+    // --- GAME CONSTANTS & STATE ---
+    const G_CONSTANT = 3400; // Gravitational constant scaled for world-unit dynamics
+    const MAX_LAUNCH_PULL = 180; // world units
+    const MAX_DELTA_V = 9.8;
+    const PREDICTION_STEPS = 600; // long enough to reach the far side of the world at full Δv
+    const TIME_STEP = 0.35;
+    // Playtest tuning: at full strength Earth's escape velocity (~149) dwarfs MAX_DELTA_V and
+    // every launch fell back. Earth acts as a launch pad; planets keep 2.5% of G so all missions are solvable.
+    const EARTH_GRAVITY_SCALE = 0;
+    const BODY_GRAVITY_SCALE = 0.025;
+
+    // Fixed world space: physics no longer depends on window size.
+    // Level coordinates are fractions of this rectangle; it lives on the Z = 0 orbital plane.
+    const WORLD_W = 1600;
+    const WORLD_H = 900;
+    const MAX_PARTICLES = 800;
+
+    const canvas = document.getElementById('gameCanvas');
+
+    let currentLevelIndex = 0;
+    let gameState = 'AIMING'; // 'AIMING', 'FLYING', 'CAPTURED', 'CRASHED', 'LOST'
+    let flightTimer = 0;
+    let maxBoostMultiplier = 1.0;
+    let launchDeltaVUsed = 0;
+
+    // Slingshot drag state (world coordinates)
+    let isAiming = false;
+    let dragStart = { x: 0, y: 0 };
+    let dragCurrent = { x: 0, y: 0 };
+
+    // Particle pool for exhaust and impacts
+    let particles = [];
+
+    // Probe entity
+    let probe = {
+      x: 0,
+      y: 0,
+      vx: 0,
+      vy: 0,
+      radius: 4.5,
+      trail: [],
+      maxTrail: 160,
+      alive: true,
+      fuelSpent: 0
+    };
+
+    // --- LEVEL DEFINITIONS ---
+    const LEVELS = [
+      {
+        id: 0,
+        title: "MISSION 01: LUNAR SLINGSHOT",
+        subtitle: "Harness the Moon's gravity well to slingshot towards the Deep Space Beacon.",
+        hint: "Pull back from Earth. Bend your trajectory curve behind the Moon for a free gravity boost!",
+        earth: { x: 0.16, y: 0.52, radius: 26, color: '#38bdf8', mass: 85, name: 'Earth' },
+        bodies: [
+          {
+            name: "Moon",
+            x: 0.52,
+            y: 0.48,
+            radius: 14,
+            mass: 22,
+            color: '#cbd5e1',
+            glow: 'rgba(203, 213, 225, 0.4)',
+            orbitCenter: { x: 0.52, y: 0.52 },
+            orbitRadius: 28,
+            orbitSpeed: 0.008,
+            angle: 0
+          }
+        ],
+        target: {
+          name: "Deep Space Relay",
+          x: 0.88,
+          y: 0.28,
+          radius: 16,
+          captureRadius: 46,
+          color: '#34d399',
+          glow: 'rgba(52, 211, 153, 0.5)'
+        },
+        beacons: [
+          { x: 0.42, y: 0.26, collected: false },
+          { x: 0.66, y: 0.38, collected: false },
+          { x: 0.82, y: 0.48, collected: false }
+        ],
+        hazards: []
+      },
+      {
+        id: 1,
+        title: "MISSION 02: MARS INSERTION",
+        subtitle: "Navigate the dense asteroid field and enter Mars' gravitational capture envelope.",
+        hint: "Thread the gap between dense asteroid clusters. Use delicate throttle control.",
+        earth: { x: 0.14, y: 0.72, radius: 26, color: '#38bdf8', mass: 85, name: 'Earth' },
+        bodies: [
+          {
+            name: "Mars",
+            x: 0.82,
+            y: 0.32,
+            radius: 20,
+            mass: 42,
+            color: '#fb923c',
+            glow: 'rgba(251, 146, 60, 0.5)',
+            isCaptureDestination: true,
+            captureRadius: 52
+          }
+        ],
+        target: {
+          name: "Mars Orbital Station",
+          x: 0.82,
+          y: 0.32,
+          radius: 20,
+          captureRadius: 54,
+          color: '#fb923c',
+          glow: 'rgba(251, 146, 60, 0.6)'
+        },
+        beacons: [
+          { x: 0.35, y: 0.52, collected: false },
+          { x: 0.56, y: 0.36, collected: false },
+          { x: 0.72, y: 0.62, collected: false }
+        ],
+        hazards: [
+          { x: 0.46, y: 0.66, radius: 14, color: '#78716c', name: 'Debris A' },
+          { x: 0.49, y: 0.46, radius: 16, color: '#78716c', name: 'Debris B' },
+          { x: 0.54, y: 0.24, radius: 15, color: '#78716c', name: 'Debris C' },
+          { x: 0.68, y: 0.16, radius: 12, color: '#78716c', name: 'Asteroid Ceres' }
+        ]
+      },
+      {
+        id: 2,
+        title: "MISSION 03: THE GRAND TOUR",
+        subtitle: "Double gravity assist: Slingshot between Jupiter & Ganymede to reach Europa.",
+        hint: "A massive gravity well will drastically curve your path. Master the dual Lagrange slingshot!",
+        earth: { x: 0.12, y: 0.5, radius: 25, color: '#38bdf8', mass: 80, name: 'Earth' },
+        bodies: [
+          {
+            name: "Jupiter",
+            x: 0.48,
+            y: 0.5,
+            radius: 36,
+            mass: 145,
+            color: '#f59e0b',
+            glow: 'rgba(245, 158, 11, 0.45)',
+            orbitCenter: null
+          },
+          {
+            name: "Ganymede",
+            x: 0.48,
+            y: 0.22,
+            radius: 12,
+            mass: 20,
+            color: '#a78bfa',
+            glow: 'rgba(167, 139, 250, 0.4)',
+            orbitCenter: { x: 0.48, y: 0.5 },
+            orbitRadius: 105,
+            orbitSpeed: 0.012,
+            angle: 1.5
+          }
+        ],
+        target: {
+          name: "Europa Research Base",
+          x: 0.88,
+          y: 0.5,
+          radius: 18,
+          captureRadius: 48,
+          color: '#2dd4bf',
+          glow: 'rgba(45, 212, 191, 0.55)'
+        },
+        beacons: [
+          { x: 0.32, y: 0.28, collected: false },
+          { x: 0.48, y: 0.84, collected: false },
+          { x: 0.70, y: 0.32, collected: false },
+          { x: 0.76, y: 0.68, collected: false }
+        ],
+        hazards: [
+          { x: 0.62, y: 0.48, radius: 11, color: '#78716c', name: 'Radiation Belt 1' },
+          { x: 0.34, y: 0.70, radius: 13, color: '#78716c', name: 'Space Junk' }
+        ]
+      }
+    ];
+
+    let currentLevel = null;
+
+    // --- WORLD <-> SCENE COORDINATES ---
+    function getCoords(obj) {
+      return {
+        x: obj.x * WORLD_W,
+        y: obj.y * WORLD_H
+      };
+    }
+
+    function getBodyPos(b) {
+      return b.orbitCenter
+        ? {
+            x: (b.orbitCenter.x * WORLD_W) + Math.cos(b.angle || 0) * b.orbitRadius,
+            y: (b.orbitCenter.y * WORLD_H) + Math.sin(b.angle || 0) * b.orbitRadius
+          }
+        : getCoords(b);
+    }
+
+    // World y grows downward (screen convention); scene y grows upward.
+    function toScene(x, y, z = 0) {
+      return new THREE.Vector3(x - WORLD_W / 2, -(y - WORLD_H / 2), z);
+    }
+
+    function writeScene(arr, i, x, y) {
+      arr[i * 3] = x - WORLD_W / 2;
+      arr[i * 3 + 1] = -(y - WORLD_H / 2);
+      arr[i * 3 + 2] = 0;
+    }
+
+    // --- THREE.JS SCENE ---
+    let renderer, labelRenderer, scene, camera;
+    let levelGroup;
+    let levelObjects = null;
+    let probeGroup, trailLine, predLine, predEnd, cordLine, reticle, aimLabel, particlePoints;
+    let glowTexture;
+    const raycaster = new THREE.Raycaster();
+    const orbitalPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+    const colorCache = {};
+
+    const CAM_MODES = ['TOP', 'CHASE', 'ISO'];
+    let camMode = 'TOP';
+    const camLook = new THREE.Vector3();
+    const chaseDir = new THREE.Vector3(1, 0, 0);
+
+    function cachedColor(hex) {
+      if (!colorCache[hex]) colorCache[hex] = new THREE.Color(hex);
+      return colorCache[hex];
+    }
+
+    function makeGlowTexture() {
+      const c = document.createElement('canvas');
+      c.width = c.height = 128;
+      const g = c.getContext('2d');
+      const grad = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+      grad.addColorStop(0, 'rgba(255,255,255,1)');
+      grad.addColorStop(0.35, 'rgba(255,255,255,0.45)');
+      grad.addColorStop(1, 'rgba(255,255,255,0)');
+      g.fillStyle = grad;
+      g.fillRect(0, 0, 128, 128);
+      return new THREE.CanvasTexture(c);
+    }
+
+    function shade(hex, amount) {
+      const col = new THREE.Color(hex);
+      col.lerp(new THREE.Color(amount > 0 ? '#ffffff' : '#000000'), Math.abs(amount));
+      return col.getStyle();
+    }
+
+    // Procedural surface textures so planets read as spheres when they spin
+    function makePlanetTexture(hex, kind) {
+      const c = document.createElement('canvas');
+      c.width = 256;
+      c.height = 128;
+      const g = c.getContext('2d');
+      g.fillStyle = hex;
+      g.fillRect(0, 0, 256, 128);
+
+      if (kind === 'bands') {
+        for (let y = 0; y < 128; y += 8) {
+          g.fillStyle = shade(hex, (Math.sin(y * 0.37) * 0.28));
+          g.globalAlpha = 0.75;
+          g.fillRect(0, y, 256, 4 + Math.random() * 6);
+        }
+        g.globalAlpha = 0.85;
+        g.fillStyle = '#b45309';
+        g.beginPath();
+        g.ellipse(170, 80, 18, 9, 0, 0, Math.PI * 2);
+        g.fill();
+      } else if (kind === 'earth') {
+        g.globalAlpha = 0.85;
+        for (let i = 0; i < 14; i++) {
+          g.fillStyle = i % 3 === 0 ? '#16a34a' : '#0284c7';
+          g.beginPath();
+          g.ellipse(Math.random() * 256, 20 + Math.random() * 88, 10 + Math.random() * 26, 6 + Math.random() * 14, Math.random() * Math.PI, 0, Math.PI * 2);
+          g.fill();
+        }
+        g.globalAlpha = 0.9;
+        g.fillStyle = '#f1f5f9';
+        g.fillRect(0, 0, 256, 7);
+        g.fillRect(0, 121, 256, 7);
+      } else {
+        // Rocky: craters and maria
+        for (let i = 0; i < 40; i++) {
+          g.globalAlpha = 0.25 + Math.random() * 0.35;
+          g.fillStyle = shade(hex, Math.random() > 0.5 ? -0.35 : 0.25);
+          g.beginPath();
+          g.arc(Math.random() * 256, Math.random() * 128, 2 + Math.random() * 9, 0, Math.PI * 2);
+          g.fill();
+        }
+      }
+      g.globalAlpha = 1;
+      return new THREE.CanvasTexture(c);
+    }
+
+    function makeLabel(text, color = '#e2e8f0', size = 11) {
+      const div = document.createElement('div');
+      div.className = 'scene-label';
+      div.textContent = text;
+      div.style.color = color;
+      div.style.fontSize = `${size}px`;
+      return new THREE.CSS2DObject(div);
+    }
+
+    function makeGlowSprite(color, scale, opacity = 1) {
+      const mat = new THREE.SpriteMaterial({
+        map: glowTexture,
+        color: new THREE.Color(color),
+        transparent: true,
+        opacity: opacity,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+      const sprite = new THREE.Sprite(mat);
+      sprite.scale.set(scale, scale, 1);
+      return sprite;
+    }
+
+    // Closed circle on the orbital plane; dashed lines need explicit line distances
+    function makeCircleLine(radius, color, opacity, dashed, dashSize = 4, gapSize = 6) {
+      const pts = [];
+      const segs = 96;
+      for (let i = 0; i <= segs; i++) {
+        const a = (i / segs) * Math.PI * 2;
+        pts.push(new THREE.Vector3(Math.cos(a) * radius, Math.sin(a) * radius, 0));
+      }
+      const geo = new THREE.BufferGeometry().setFromPoints(pts);
+      const mat = dashed
+        ? new THREE.LineDashedMaterial({ color, transparent: true, opacity, dashSize, gapSize, depthWrite: false })
+        : new THREE.LineBasicMaterial({ color, transparent: true, opacity, depthWrite: false });
+      const line = new THREE.Line(geo, mat);
+      if (dashed) line.computeLineDistances();
+      return line;
+    }
+
+    function makePlanetMesh(data, kind) {
+      const mesh = new THREE.Mesh(
+        new THREE.SphereGeometry(data.radius, 48, 32),
+        new THREE.MeshStandardMaterial({
+          map: makePlanetTexture(data.color, kind),
+          roughness: 0.85,
+          metalness: 0.0,
+          emissive: new THREE.Color(data.color),
+          emissiveIntensity: 0.12
+        })
+      );
+      mesh.rotation.x = Math.PI / 2; // poles point out of the orbital plane
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      return mesh;
+    }
+
+    function makeDynamicLine(maxPoints, material, withColors = false) {
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(maxPoints * 3), 3));
+      if (withColors) geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(maxPoints * 3), 3));
+      geo.setDrawRange(0, 0);
+      const line = new THREE.Line(geo, material);
+      line.frustumCulled = false;
+      return line;
+    }
+
+    function initScene() {
+      renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setClearColor(0x030712, 1);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+      labelRenderer = new THREE.CSS2DRenderer();
+      labelRenderer.setSize(window.innerWidth, window.innerHeight);
+      const lr = labelRenderer.domElement;
+      lr.style.position = 'absolute';
+      lr.style.top = '0';
+      lr.style.left = '0';
+      lr.style.pointerEvents = 'none';
+      lr.style.zIndex = '5';
+      document.body.insertBefore(lr, canvas.nextSibling);
+
+      scene = new THREE.Scene();
+      scene.fog = new THREE.FogExp2(0x030712, 0.00012);
+
+      camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 15000);
+
+      glowTexture = makeGlowTexture();
+
+      // Lighting: soft ambient + a "sun" casting shadows onto the orbital plane
+      scene.add(new THREE.AmbientLight(0xffffff, 0.42));
+      const sun = new THREE.DirectionalLight(0xfff7ed, 1.05);
+      sun.position.set(-700, 500, 1400);
+      sun.castShadow = true;
+      sun.shadow.mapSize.set(2048, 2048);
+      const sc = sun.shadow.camera;
+      sc.left = -1100; sc.right = 1100; sc.top = 800; sc.bottom = -800;
+      sc.near = 10; sc.far = 4000;
+      scene.add(sun);
+      scene.add(sun.target);
+
+      // Orbital plane reference grid + shadow catcher just below it
+      const grid = new THREE.GridHelper(2600, 52, 0x0e7490, 0x1e293b);
+      grid.rotation.x = Math.PI / 2;
+      grid.position.z = -45;
+      grid.material.transparent = true;
+      grid.material.opacity = 0.22;
+      grid.material.depthWrite = false;
+      scene.add(grid);
+
+      const shadowPlane = new THREE.Mesh(
+        new THREE.PlaneGeometry(2600, 1800),
+        new THREE.ShadowMaterial({ opacity: 0.35 })
+      );
+      shadowPlane.position.z = -44;
+      shadowPlane.receiveShadow = true;
+      scene.add(shadowPlane);
+
+      // Starfield shell
+      const starCount = 3000;
+      const starPos = new Float32Array(starCount * 3);
+      const starCol = new Float32Array(starCount * 3);
+      const tints = [new THREE.Color('#ffffff'), new THREE.Color('#bae6fd'), new THREE.Color('#fde68a'), new THREE.Color('#e9d5ff')];
+      for (let i = 0; i < starCount; i++) {
+        const u = Math.random() * 2 - 1;
+        const th = Math.random() * Math.PI * 2;
+        const r = 5000 + Math.random() * 2500;
+        const s = Math.sqrt(1 - u * u);
+        starPos[i * 3] = r * s * Math.cos(th);
+        starPos[i * 3 + 1] = r * s * Math.sin(th);
+        starPos[i * 3 + 2] = r * u;
+        const t = tints[i % tints.length];
+        const b = 0.4 + Math.random() * 0.6;
+        starCol[i * 3] = t.r * b;
+        starCol[i * 3 + 1] = t.g * b;
+        starCol[i * 3 + 2] = t.b * b;
+      }
+      const starGeo = new THREE.BufferGeometry();
+      starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+      starGeo.setAttribute('color', new THREE.BufferAttribute(starCol, 3));
+      const starfield = new THREE.Points(starGeo, new THREE.PointsMaterial({
+        size: 2.2, sizeAttenuation: false, vertexColors: true, fog: false, depthWrite: false
+      }));
+      starfield.name = 'starfield';
+      scene.add(starfield);
+
+      levelGroup = new THREE.Group();
+      scene.add(levelGroup);
+
+      // Probe vessel: core cone pointing +X, solar array, science dish, engine glow
+      probeGroup = new THREE.Group();
+      const core = new THREE.Mesh(
+        new THREE.ConeGeometry(4.5, 13, 10),
+        new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.4, metalness: 0.5, emissive: 0x334155, emissiveIntensity: 0.4 })
+      );
+      core.rotation.z = -Math.PI / 2;
+      core.castShadow = true;
+      const panels = new THREE.Mesh(
+        new THREE.BoxGeometry(5, 24, 1.2),
+        new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.3, metalness: 0.7, emissive: 0x0c4a6e, emissiveIntensity: 0.5 })
+      );
+      panels.position.x = -1;
+      panels.castShadow = true;
+      const dish = new THREE.Mesh(
+        new THREE.SphereGeometry(2, 12, 8),
+        new THREE.MeshBasicMaterial({ color: 0x38bdf8 })
+      );
+      dish.position.set(2, 0, 3);
+      const engineGlow = makeGlowSprite('#38bdf8', 22, 0.9);
+      engineGlow.position.x = -8;
+      probeGroup.add(core, panels, dish, engineGlow);
+      probeGroup.scale.setScalar(1.25);
+      probeGroup.visible = false;
+      scene.add(probeGroup);
+
+      // Fading flight trail
+      trailLine = makeDynamicLine(probe.maxTrail, new THREE.LineBasicMaterial({
+        vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false
+      }), true);
+      scene.add(trailLine);
+
+      // Predictive trajectory (dashed)
+      predLine = makeDynamicLine(PREDICTION_STEPS + 2, new THREE.LineDashedMaterial({
+        color: 0x38bdf8, dashSize: 5, gapSize: 6, transparent: true, opacity: 0.95, depthWrite: false
+      }));
+      predLine.geometry.setAttribute('lineDistance', new THREE.BufferAttribute(new Float32Array(PREDICTION_STEPS + 2), 1));
+      scene.add(predLine);
+
+      predEnd = new THREE.Mesh(new THREE.SphereGeometry(3, 10, 8), new THREE.MeshBasicMaterial({ color: 0x38bdf8 }));
+      predEnd.visible = false;
+      scene.add(predEnd);
+
+      // Slingshot rubber band + pull reticle
+      cordLine = makeDynamicLine(2, new THREE.LineBasicMaterial({ color: 0xf43f5e, transparent: true, opacity: 0.85 }));
+      scene.add(cordLine);
+      reticle = new THREE.Mesh(new THREE.SphereGeometry(6, 14, 10), new THREE.MeshBasicMaterial({ color: 0xf43f5e }));
+      reticle.visible = false;
+      aimLabel = makeLabel('', '#f43f5e', 12);
+      aimLabel.position.set(40, 14, 0);
+      reticle.add(aimLabel);
+      scene.add(reticle);
+
+      // Particles: one pooled Points cloud; fading by darkening colour under additive blending
+      const pGeo = new THREE.BufferGeometry();
+      pGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(MAX_PARTICLES * 3), 3));
+      pGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(MAX_PARTICLES * 3), 3));
+      pGeo.setDrawRange(0, 0);
+      particlePoints = new THREE.Points(pGeo, new THREE.PointsMaterial({
+        size: 7, map: glowTexture, vertexColors: true, transparent: true,
+        blending: THREE.AdditiveBlending, depthWrite: false
+      }));
+      particlePoints.frustumCulled = false;
+      scene.add(particlePoints);
+
+      snapCamera();
+    }
+
+    function clearLevelGroup() {
+      while (levelGroup.children.length) {
+        const child = levelGroup.children[0];
+        levelGroup.remove(child);
+        child.traverse(o => {
+          // r128 CSS2DRenderer leaves label elements in the DOM after removal
+          if (o.isCSS2DObject && o.element.parentNode) o.element.parentNode.removeChild(o.element);
+          if (o.geometry) o.geometry.dispose();
+          if (o.material) {
+            if (o.material.map) o.material.map.dispose();
+            o.material.dispose();
+          }
+        });
+      }
+    }
+
+    function buildLevelScene() {
+      clearLevelGroup();
+      const lvl = currentLevel;
+      levelObjects = { earth: null, aimRing: null, bodies: [], target: null, targetRing: null, targetCore: null, beacons: [], hazards: [] };
+
+      // Earth (launch base)
+      const earthGroup = new THREE.Group();
+      const earthMesh = makePlanetMesh(lvl.earth, 'earth');
+      earthGroup.add(earthMesh);
+      earthGroup.add(makeGlowSprite('#38bdf8', lvl.earth.radius * 3.4, 0.55));
+      const earthLabel = makeLabel('EARTH (BASE)', '#bae6fd');
+      earthLabel.position.set(0, -(lvl.earth.radius + 16), 0);
+      earthGroup.add(earthLabel);
+      const aimRing = makeCircleLine(lvl.earth.radius + 10, 0x38bdf8, 0.55, true, 4, 4);
+      earthGroup.add(aimRing);
+      earthGroup.position.copy(toScene(getCoords(lvl.earth).x, getCoords(lvl.earth).y));
+      levelGroup.add(earthGroup);
+      levelObjects.earth = { group: earthGroup, mesh: earthMesh };
+      levelObjects.aimRing = aimRing;
+
+      // Celestial bodies with gravity well contours and orbit tracks
+      lvl.bodies.forEach(b => {
+        const group = new THREE.Group();
+        const kind = b.name === 'Jupiter' ? 'bands' : 'rocky';
+        const mesh = makePlanetMesh(b, kind);
+        group.add(mesh);
+        group.add(makeGlowSprite(b.color, b.radius * 3.2, 0.5));
+        for (let ring = 1; ring <= 3; ring++) {
+          group.add(makeCircleLine(b.radius + ring * 28, 0x38bdf8, 0.32 / ring, true));
+        }
+        const label = makeLabel(b.name);
+        label.position.set(0, -(b.radius + 14), 0);
+        group.add(label);
+        levelGroup.add(group);
+
+        if (b.orbitCenter) {
+          const track = makeCircleLine(b.orbitRadius, 0xffffff, 0.1, false);
+          const oc = toScene(b.orbitCenter.x * WORLD_W, b.orbitCenter.y * WORLD_H);
+          track.position.copy(oc);
+          levelGroup.add(track);
+        }
+        levelObjects.bodies.push({ data: b, group, mesh });
+      });
+
+      // Target capture envelope
+      const t = lvl.target;
+      const tGroup = new THREE.Group();
+      const tRing = makeCircleLine(t.captureRadius, new THREE.Color(t.color), 0.95, true, 6, 6);
+      tGroup.add(tRing);
+      const disc = new THREE.Mesh(
+        new THREE.CircleGeometry(t.captureRadius, 64),
+        new THREE.MeshBasicMaterial({ map: glowTexture, color: new THREE.Color(t.color), transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false })
+      );
+      tGroup.add(disc);
+      const tCore = new THREE.Mesh(
+        new THREE.SphereGeometry(t.radius * 0.45, 20, 14),
+        new THREE.MeshStandardMaterial({ color: t.color, emissive: new THREE.Color(t.color), emissiveIntensity: 0.8 })
+      );
+      tGroup.add(tCore);
+      tGroup.add(makeGlowSprite(t.color, t.radius * 2.6, 0.7));
+      const tLabel = makeLabel(t.name.toUpperCase(), '#6ee7b7', 10);
+      tLabel.position.set(0, t.captureRadius + 10, 0);
+      tGroup.add(tLabel);
+      tGroup.position.copy(toScene(getCoords(t).x, getCoords(t).y));
+      levelGroup.add(tGroup);
+      levelObjects.target = tGroup;
+      levelObjects.targetRing = tRing;
+      levelObjects.targetCore = tCore;
+
+      // Hazards: lumpy faceted asteroids
+      lvl.hazards.forEach(hz => {
+        const geo = new THREE.IcosahedronGeometry(hz.radius, 1);
+        const pos = geo.attributes.position;
+        const jitter = {};
+        const v = new THREE.Vector3();
+        for (let i = 0; i < pos.count; i++) {
+          v.fromBufferAttribute(pos, i);
+          const key = `${v.x.toFixed(3)},${v.y.toFixed(3)},${v.z.toFixed(3)}`;
+          if (jitter[key] === undefined) jitter[key] = 0.75 + Math.random() * 0.45;
+          v.multiplyScalar(jitter[key]);
+          pos.setXYZ(i, v.x, v.y, v.z);
+        }
+        geo.computeVertexNormals();
+        const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: hz.color, roughness: 0.95, flatShading: true }));
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        mesh.rotation.set(Math.random() * 3, Math.random() * 3, 0);
+        const p = getCoords(hz);
+        mesh.position.copy(toScene(p.x, p.y));
+        levelGroup.add(mesh);
+
+        const label = makeLabel(hz.name, '#a8a29e', 9);
+        label.position.copy(toScene(p.x, p.y + hz.radius + 12));
+        levelGroup.add(label);
+        levelObjects.hazards.push({ mesh, spin: 0.2 + Math.random() * 0.5 });
+      });
+
+      // Science beacons
+      lvl.beacons.forEach((bc, idx) => {
+        const group = new THREE.Group();
+        const mesh = new THREE.Mesh(
+          new THREE.OctahedronGeometry(8),
+          new THREE.MeshStandardMaterial({ color: 0xfacc15, emissive: 0xfacc15, emissiveIntensity: 0.6, roughness: 0.3, metalness: 0.4, transparent: true })
+        );
+        mesh.castShadow = true;
+        const glow = makeGlowSprite('#facc15', 34, 0.6);
+        const label = makeLabel(`BEACON ${idx + 1}`, '#fde047', 9);
+        label.position.set(0, 18, 0);
+        group.add(mesh, glow, label);
+        const p = getCoords(bc);
+        group.position.copy(toScene(p.x, p.y));
+        levelGroup.add(group);
+        levelObjects.beacons.push({ data: bc, mesh, glow, label, phase: idx });
+      });
+    }
+
+    // --- INITIALIZATION ---
+    function loadLevel(idx) {
+      currentLevelIndex = (idx + LEVELS.length) % LEVELS.length;
+      const rawLvl = LEVELS[currentLevelIndex];
+      // Clone deeply to allow modifications (e.g. collected beacons, dynamic orbits)
+      currentLevel = JSON.parse(JSON.stringify(rawLvl));
+
+      document.getElementById('levelTitle').textContent = currentLevel.title;
+      document.getElementById('hintText').textContent = currentLevel.hint;
+
+      // Update level button styles
+      document.querySelectorAll('.lvl-btn').forEach((btn, i) => {
+        if (i === currentLevelIndex) {
+          btn.className = 'lvl-btn px-3 py-1 rounded-lg text-xs font-orbitron font-bold bg-cyan-400 text-slate-950 shadow-md';
+        } else {
+          btn.className = 'lvl-btn px-3 py-1 rounded-lg text-xs font-orbitron font-bold bg-slate-800 text-slate-300 hover:bg-slate-700';
+        }
+      });
+
+      buildLevelScene();
+      resetProbeToEarth();
+      document.getElementById('victoryModal').classList.add('hidden');
+    }
+
+    function resetProbeToEarth() {
+      const earthPos = getCoords(currentLevel.earth);
+      probe.x = earthPos.x;
+      probe.y = earthPos.y;
+      probe.vx = 0;
+      probe.vy = 0;
+      probe.trail = [];
+      probe.alive = true;
+      probe.fuelSpent = 0;
+      flightTimer = 0;
+      maxBoostMultiplier = 1.0;
+      launchDeltaVUsed = 0;
+      gameState = 'AIMING';
+      isAiming = false;
+
+      // Reset beacons collected for this attempt
+      currentLevel.beacons.forEach(b => b.collected = false);
+
+      updateTelemetryUI();
+    }
+
+    // --- PHYSICS ENGINE: N-BODY GRAVITATIONAL ACCELERATION ---
+    function calculateGravityAt(x, y, ignoreBodies = []) {
+      let ax = 0;
+      let ay = 0;
+      let minDistanceToBody = Infinity;
+      let closestBody = null;
+
+      // 1. Earth Gravity
+      const earthPos = getCoords(currentLevel.earth);
+      const dxE = earthPos.x - x;
+      const dyE = earthPos.y - y;
+      const distSqE = dxE * dxE + dyE * dyE;
+      const distE = Math.sqrt(distSqE);
+      if (distE > 5 && EARTH_GRAVITY_SCALE > 0) {
+        const fE = (G_CONSTANT * currentLevel.earth.mass * EARTH_GRAVITY_SCALE) / Math.max(distSqE, 400);
+        ax += (dxE / distE) * fE;
+        ay += (dyE / distE) * fE;
+      }
+
+      // 2. Celestial Planetary Bodies
+      currentLevel.bodies.forEach(b => {
+        const bPos = getBodyPos(b);
+
+        const dx = bPos.x - x;
+        const dy = bPos.y - y;
+        const distSq = dx * dx + dy * dy;
+        const dist = Math.sqrt(distSq);
+
+        if (dist < minDistanceToBody) {
+          minDistanceToBody = dist;
+          closestBody = b;
+        }
+
+        // Softened gravity to avoid infinite acceleration singularity at center
+        const softenedDistSq = Math.max(distSq, b.radius * b.radius * 0.85);
+        const f = (G_CONSTANT * b.mass * BODY_GRAVITY_SCALE) / softenedDistSq;
+        ax += (dx / dist) * f;
+        ay += (dy / dist) * f;
+      });
+
+      return { ax, ay, minDistanceToBody, closestBody };
+    }
+
+    // --- REAL-TIME TRAJECTORY PREDICTION ---
+    function calculatePredictiveTrajectory(startX, startY, initVx, initVy) {
+      const points = [];
+      let simX = startX;
+      let simY = startY;
+      let simVx = initVx;
+      let simVy = initVy;
+
+      points.push({ x: simX, y: simY });
+
+      // Advance orbiting moons in lockstep with the flight (one orbit tick per physics step),
+      // then restore them, so the preview matches what will actually happen
+      const savedAngles = currentLevel.bodies.map(b => b.angle);
+
+      for (let step = 0; step < PREDICTION_STEPS; step++) {
+        currentLevel.bodies.forEach(b => {
+          if (b.orbitCenter && b.orbitSpeed) b.angle = (b.angle || 0) + b.orbitSpeed;
+        });
+
+        // Gravitational step
+        const grav = calculateGravityAt(simX, simY);
+        simVx += grav.ax * TIME_STEP;
+        simVy += grav.ay * TIME_STEP;
+        simX += simVx * TIME_STEP;
+        simY += simVy * TIME_STEP;
+
+        points.push({ x: simX, y: simY });
+
+        // Check if path collides with Earth
+        const earthPos = getCoords(currentLevel.earth);
+        const dEarth = Math.hypot(earthPos.x - simX, earthPos.y - simY);
+        if (step > 4 && dEarth <= currentLevel.earth.radius) break;
+
+        // Check if path collides with planets
+        let collided = false;
+        for (const b of currentLevel.bodies) {
+          const bPos = getBodyPos(b);
+          if (Math.hypot(bPos.x - simX, bPos.y - simY) <= b.radius) {
+            collided = true;
+            break;
+          }
+        }
+        if (collided) break;
+
+        // Check if path collides with hazards
+        if (currentLevel.hazards.some(hz => {
+          const hzPos = getCoords(hz);
+          return Math.hypot(hzPos.x - simX, hzPos.y - simY) <= hz.radius + probe.radius;
+        })) break;
+
+        // Check target encounter
+        const tgtPos = getCoords(currentLevel.target);
+        if (Math.hypot(tgtPos.x - simX, tgtPos.y - simY) <= currentLevel.target.captureRadius) {
+          // Path reached target envelope
+          break;
+        }
+
+        // Check out of bounds
+        if (simX < -150 || simX > WORLD_W + 150 || simY < -150 || simY > WORLD_H + 150) {
+          break;
+        }
+      }
+      currentLevel.bodies.forEach((b, i) => { b.angle = savedAngles[i]; });
+      return points;
+    }
+
+    // --- PARTICLES & FX ---
+    function spawnThrustParticles(x, y, vx, vy, count = 3, color = '#38bdf8') {
+      for (let i = 0; i < count; i++) {
+        particles.push({
+          x: x,
+          y: y,
+          vx: -vx * 0.4 + (Math.random() - 0.5) * 1.5,
+          vy: -vy * 0.4 + (Math.random() - 0.5) * 1.5,
+          size: Math.random() * 2.8 + 1.2,
+          life: 1.0,
+          decay: Math.random() * 0.04 + 0.02,
+          color: color
+        });
+      }
+    }
+
+    function spawnExplosion(x, y, color = '#f97316') {
+      for (let i = 0; i < 35; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 4.5 + 0.8;
+        particles.push({
+          x: x,
+          y: y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          size: Math.random() * 3.5 + 1.5,
+          life: 1.0,
+          decay: Math.random() * 0.025 + 0.015,
+          color: i % 2 === 0 ? color : '#fde047'
+        });
+      }
+    }
+
+    function spawnCaptureRipples(x, y) {
+      for (let i = 0; i < 25; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 3.0 + 1.0;
+        particles.push({
+          x: x,
+          y: y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          size: Math.random() * 2.5 + 1,
+          life: 1.0,
+          decay: 0.02,
+          color: '#34d399'
+        });
+      }
+    }
+
+    // --- GAME LOOP & UPDATES ---
+    function updateGame(dt) {
+      // 1. Orbit animation for planetary moons
+      currentLevel.bodies.forEach(b => {
+        if (b.orbitCenter && b.orbitSpeed) {
+          b.angle = (b.angle || 0) + b.orbitSpeed;
+        }
+      });
+
+      // 2. Flight Dynamics
+      if (gameState === 'FLYING' && probe.alive) {
+        flightTimer += dt;
+
+        // Gravity calculation
+        const grav = calculateGravityAt(probe.x, probe.y);
+        const prevSpeed = Math.hypot(probe.vx, probe.vy);
+
+        probe.vx += grav.ax * TIME_STEP;
+        probe.vy += grav.ay * TIME_STEP;
+        probe.x += probe.vx * TIME_STEP;
+        probe.y += probe.vy * TIME_STEP;
+
+        const currentSpeed = Math.hypot(probe.vx, probe.vy);
+
+        // Detect Slingshot Velocity Gain
+        if (currentSpeed > prevSpeed + 0.04 && grav.closestBody && grav.minDistanceToBody < grav.closestBody.radius * 3.8) {
+          const ratio = (currentSpeed / (launchDeltaVUsed || 1));
+          if (ratio > maxBoostMultiplier) {
+            maxBoostMultiplier = parseFloat(ratio.toFixed(2));
+            sfx.playGravityBoost();
+            spawnThrustParticles(probe.x, probe.y, probe.vx, probe.vy, 4, '#a855f7');
+          }
+        }
+
+        // Add to historical trail
+        probe.trail.push({ x: probe.x, y: probe.y });
+        if (probe.trail.length > probe.maxTrail) {
+          probe.trail.shift();
+        }
+
+        // Engine exhaust glow
+        if (Math.random() > 0.4) {
+          spawnThrustParticles(probe.x, probe.y, probe.vx, probe.vy, 1, '#38bdf8');
+        }
+
+        // Check Beacon Collections
+        currentLevel.beacons.forEach(beacon => {
+          if (!beacon.collected) {
+            const bPos = getCoords(beacon);
+            if (Math.hypot(probe.x - bPos.x, probe.y - bPos.y) < probe.radius + 14) {
+              beacon.collected = true;
+              sfx.playBeacon();
+              spawnCaptureRipples(bPos.x, bPos.y);
+            }
+          }
+        });
+
+        // Check Collision: Earth
+        const earthPos = getCoords(currentLevel.earth);
+        if (Math.hypot(probe.x - earthPos.x, probe.y - earthPos.y) <= currentLevel.earth.radius) {
+          triggerCrash("Probe crashed into Earth's atmosphere.");
+        }
+
+        // Check Collision: Planets
+        currentLevel.bodies.forEach(b => {
+          const bPos = getBodyPos(b);
+          if (Math.hypot(probe.x - bPos.x, probe.y - bPos.y) <= b.radius) {
+            triggerCrash(`Surface impact on ${b.name}!`);
+          }
+        });
+
+        // Check Collision: Hazards (Asteroids/Debris)
+        currentLevel.hazards.forEach(hz => {
+          const hzPos = getCoords(hz);
+          if (Math.hypot(probe.x - hzPos.x, probe.y - hzPos.y) <= hz.radius + probe.radius) {
+            triggerCrash(`Destroyed by collision with ${hz.name}!`);
+          }
+        });
+
+        // Check Target Orbital Capture
+        const tgtPos = getCoords(currentLevel.target);
+        const distToTarget = Math.hypot(probe.x - tgtPos.x, probe.y - tgtPos.y);
+
+        if (distToTarget <= currentLevel.target.captureRadius) {
+          // If speed is not excessively hypersonic, captured!
+          if (currentSpeed < 14) {
+            triggerVictory();
+          } else {
+            // Speed too high to enter stable orbit
+            document.getElementById('hintText').textContent = "Hyperbolic escape velocity! Speed too high for orbital capture.";
+          }
+        }
+
+        // Check Out of Bounds
+        if (
+          probe.x < -200 ||
+          probe.x > WORLD_W + 200 ||
+          probe.y < -200 ||
+          probe.y > WORLD_H + 200
+        ) {
+          triggerLost("Deep space drift. Probe lost into the cosmic void.");
+        }
+
+        updateTelemetryUI();
+      }
+
+      // 3. Update particle dynamics
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= p.decay;
+        if (p.life <= 0) {
+          particles.splice(i, 1);
+        }
+      }
+    }
+
+    function triggerCrash(reason) {
+      probe.alive = false;
+      gameState = 'CRASHED';
+      sfx.playCrash();
+      spawnExplosion(probe.x, probe.y, '#ef4444');
+      document.getElementById('hintText').textContent = `CRITICAL FAILURE: ${reason} Press Reload to retry.`;
+    }
+
+    function triggerLost(reason) {
+      probe.alive = false;
+      gameState = 'LOST';
+      document.getElementById('hintText').textContent = reason + " Press Reload to aim again.";
+    }
+
+    function triggerVictory() {
+      gameState = 'CAPTURED';
+      probe.alive = false;
+      sfx.playVictory();
+      const tgtPos = getCoords(currentLevel.target);
+      spawnCaptureRipples(tgtPos.x, tgtPos.y);
+
+      // Score Calculation
+      const beaconsCollected = currentLevel.beacons.filter(b => b.collected).length;
+      const totalBeacons = currentLevel.beacons.length;
+      const fuelRemainingPct = Math.max(0, Math.round(100 - (launchDeltaVUsed / MAX_DELTA_V) * 100));
+
+      let starsCount = 1;
+      if (fuelRemainingPct >= 40 && beaconsCollected >= 1) starsCount = 2;
+      if (fuelRemainingPct >= 65 && beaconsCollected === totalBeacons) starsCount = 3;
+
+      document.getElementById('metricTime').textContent = `${flightTimer.toFixed(1)}s`;
+      document.getElementById('metricFuel').textContent = `${fuelRemainingPct}% fuel left`;
+      document.getElementById('metricBoost').textContent = `${maxBoostMultiplier.toFixed(2)}x Multiplier`;
+      document.getElementById('metricBeacons').textContent = `${beaconsCollected} / ${totalBeacons}`;
+
+      let starIcons = '';
+      for (let s = 0; s < 3; s++) {
+        starIcons += s < starsCount ? '★' : '<span class="text-slate-700">★</span>';
+      }
+      document.getElementById('starContainer').innerHTML = starIcons;
+
+      document.getElementById('victoryModal').classList.remove('hidden');
+    }
+
+    function updateTelemetryUI() {
+      const curSpeed = (Math.hypot(probe.vx, probe.vy) * 2.8).toFixed(1);
+      document.getElementById('telemetrySpeed').textContent = `${curSpeed} km/s`;
+      document.getElementById('telemetryBoost').textContent = `${maxBoostMultiplier.toFixed(1)}x`;
+
+      const fuelSpentFraction = Math.min(1, launchDeltaVUsed / MAX_DELTA_V);
+      const fuelPercent = Math.max(0, Math.round((1 - fuelSpentFraction) * 100));
+      document.getElementById('fuelBar').style.width = `${fuelPercent}%`;
+      document.getElementById('fuelVal').textContent = `${fuelPercent}%`;
+
+      const collected = currentLevel.beacons.filter(b => b.collected).length;
+      document.getElementById('telemetryTokens').textContent = `${collected} / ${currentLevel.beacons.length}`;
+    }
+
+    // --- SCENE SYNC (replaces 2D drawGame) ---
+    function getAimVector() {
+      const pullDx = dragStart.x - dragCurrent.x;
+      const pullDy = dragStart.y - dragCurrent.y;
+      const pullDist = Math.hypot(pullDx, pullDy);
+      const clampedPull = Math.min(pullDist, MAX_LAUNCH_PULL);
+      const angle = Math.atan2(pullDy, pullDx);
+      const thrustPower = (clampedPull / MAX_LAUNCH_PULL) * MAX_DELTA_V;
+      return { pullDist, thrustPower, angle, vx: Math.cos(angle) * thrustPower, vy: Math.sin(angle) * thrustPower };
+    }
+
+    // Probe leaves from Earth's surface along the launch heading, not from its centre
+    function getLaunchPoint(angle) {
+      const earthPos = getCoords(currentLevel.earth);
+      const r = currentLevel.earth.radius + 6;
+      return { x: earthPos.x + Math.cos(angle) * r, y: earthPos.y + Math.sin(angle) * r };
+    }
+
+    function syncScene(now, dt) {
+      const t = now * 0.001;
+
+      // Bodies follow their (possibly orbiting) positions and spin on their axes
+      levelObjects.bodies.forEach(o => {
+        const p = getBodyPos(o.data);
+        o.group.position.copy(toScene(p.x, p.y));
+        o.mesh.rotation.y += dt * 0.35;
+      });
+      levelObjects.earth.mesh.rotation.y += dt * 0.25;
+
+      // Earth prompt ring pulses while waiting for input
+      const aimRing = levelObjects.aimRing;
+      aimRing.visible = gameState === 'AIMING' && !isAiming;
+      const pulse = 1 + Math.sin(now * 0.006) * 4 / (currentLevel.earth.radius + 10);
+      aimRing.scale.set(pulse, pulse, 1);
+
+      levelObjects.targetRing.rotation.z += dt * 0.25;
+      levelObjects.targetCore.scale.setScalar(1 + Math.sin(t * 3) * 0.12);
+
+      levelObjects.hazards.forEach(h => {
+        h.mesh.rotation.x += dt * h.spin;
+        h.mesh.rotation.y += dt * h.spin * 0.7;
+      });
+
+      levelObjects.beacons.forEach(b => {
+        if (b.data.collected) {
+          b.mesh.material.opacity = 0.15;
+          b.mesh.scale.setScalar(0.6);
+          b.glow.visible = false;
+          b.label.element.style.opacity = '0';
+        } else {
+          const s = 1 + Math.sin(now * 0.005 + b.phase) * 0.25;
+          b.mesh.material.opacity = 1;
+          b.mesh.scale.setScalar(s);
+          b.mesh.rotation.z += dt * 1.6;
+          b.mesh.rotation.x = Math.sin(t + b.phase) * 0.5;
+          b.glow.visible = true;
+          b.label.element.style.opacity = '1';
+        }
+      });
+
+      // Slingshot aim + predictive trajectory
+      const showAim = gameState === 'AIMING' && isAiming;
+      predLine.visible = cordLine.visible = reticle.visible = predEnd.visible = aimLabel.visible = showAim;
+      if (showAim) {
+        const earthPos = getCoords(currentLevel.earth);
+        const aim = getAimVector();
+
+        const cordArr = cordLine.geometry.attributes.position.array;
+        writeScene(cordArr, 0, earthPos.x, earthPos.y);
+        writeScene(cordArr, 1, dragCurrent.x, dragCurrent.y);
+        cordLine.geometry.attributes.position.needsUpdate = true;
+        cordLine.geometry.setDrawRange(0, 2);
+
+        reticle.position.copy(toScene(dragCurrent.x, dragCurrent.y));
+        aimLabel.element.textContent = `Δv: ${aim.thrustPower.toFixed(1)} km/s`;
+
+        const lp = getLaunchPoint(aim.angle);
+        const pts = calculatePredictiveTrajectory(lp.x, lp.y, aim.vx, aim.vy);
+        const n = Math.min(pts.length, PREDICTION_STEPS + 2);
+        const arr = predLine.geometry.attributes.position.array;
+        const dist = predLine.geometry.attributes.lineDistance.array;
+        let acc = 0;
+        for (let i = 0; i < n; i++) {
+          writeScene(arr, i, pts[i].x, pts[i].y);
+          if (i > 0) acc += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+          dist[i] = acc;
+        }
+        predLine.geometry.attributes.position.needsUpdate = true;
+        predLine.geometry.attributes.lineDistance.needsUpdate = true;
+        predLine.geometry.setDrawRange(0, n);
+        const last = pts[n - 1];
+        predEnd.position.copy(toScene(last.x, last.y));
+      }
+
+      // Flight trail with fading vertex colours
+      const trail = probe.trail;
+      const tPos = trailLine.geometry.attributes.position.array;
+      const tCol = trailLine.geometry.attributes.color.array;
+      const trailColor = cachedColor('#38bdf8');
+      for (let i = 0; i < trail.length; i++) {
+        writeScene(tPos, i, trail[i].x, trail[i].y);
+        const a = (i / trail.length) * 0.85;
+        tCol[i * 3] = trailColor.r * a;
+        tCol[i * 3 + 1] = trailColor.g * a;
+        tCol[i * 3 + 2] = trailColor.b * a;
+      }
+      trailLine.geometry.attributes.position.needsUpdate = true;
+      trailLine.geometry.attributes.color.needsUpdate = true;
+      trailLine.geometry.setDrawRange(0, trail.length > 1 ? trail.length : 0);
+
+      // Particles
+      const pPos = particlePoints.geometry.attributes.position.array;
+      const pCol = particlePoints.geometry.attributes.color.array;
+      const count = Math.min(particles.length, MAX_PARTICLES);
+      for (let i = 0; i < count; i++) {
+        const p = particles[particles.length - count + i];
+        writeScene(pPos, i, p.x, p.y);
+        const c = cachedColor(p.color);
+        const l = Math.max(0, p.life);
+        pCol[i * 3] = c.r * l;
+        pCol[i * 3 + 1] = c.g * l;
+        pCol[i * 3 + 2] = c.b * l;
+      }
+      particlePoints.geometry.attributes.position.needsUpdate = true;
+      particlePoints.geometry.attributes.color.needsUpdate = true;
+      particlePoints.geometry.setDrawRange(0, count);
+
+      // Probe vessel
+      probeGroup.visible = probe.alive && gameState !== 'AIMING';
+      if (probeGroup.visible) {
+        probeGroup.position.copy(toScene(probe.x, probe.y));
+        probeGroup.rotation.z = Math.atan2(-probe.vy, probe.vx);
+      }
+    }
+
+    // --- CAMERA RIG ---
+    function topDistance() {
+      const tanHalf = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+      const dH = (WORLD_H / 2) / tanHalf;
+      const dW = (WORLD_W / 2) / (tanHalf * camera.aspect);
+      return Math.max(dH, dW) * 1.04;
+    }
+
+    function getCameraGoal() {
+      const d = topDistance();
+      if (camMode === 'CHASE' && gameState !== 'AIMING') {
+        const p = toScene(probe.x, probe.y);
+        const sp = Math.hypot(probe.vx, probe.vy);
+        if (probe.alive && sp > 0.05) {
+          chaseDir.lerp(new THREE.Vector3(probe.vx / sp, -probe.vy / sp, 0), 0.08).normalize();
+        }
+        return {
+          pos: p.clone().addScaledVector(chaseDir, -170).add(new THREE.Vector3(0, 0, 95)),
+          look: p.clone().addScaledVector(chaseDir, 140),
+          up: new THREE.Vector3(0, 0, 1),
+          rate: 6
+        };
+      }
+      if (camMode === 'ISO' || camMode === 'CHASE') {
+        // CHASE falls back to ISO framing while aiming
+        const tilt = THREE.MathUtils.degToRad(52);
+        const di = d * 1.08;
+        return {
+          pos: new THREE.Vector3(0, -di * Math.sin(tilt) - 60, di * Math.cos(tilt)),
+          look: new THREE.Vector3(0, -60, 0),
+          up: new THREE.Vector3(0, 0, 1),
+          rate: 3.5
+        };
+      }
+      return {
+        pos: new THREE.Vector3(0, 0, d),
+        look: new THREE.Vector3(0, 0, 0),
+        up: new THREE.Vector3(0, 1, 0),
+        rate: 3.5
+      };
+    }
+
+    function snapCamera() {
+      const goal = getCameraGoal();
+      camera.position.copy(goal.pos);
+      camera.up.copy(goal.up);
+      camLook.copy(goal.look);
+      camera.lookAt(camLook);
+    }
+
+    function updateCamera(dt) {
+      const goal = getCameraGoal();
+      const k = 1 - Math.exp(-dt * goal.rate);
+      camera.position.lerp(goal.pos, k);
+      camera.up.lerp(goal.up, k).normalize();
+      camLook.lerp(goal.look, k);
+      camera.lookAt(camLook);
+    }
+
+    function cycleCamera() {
+      camMode = CAM_MODES[(CAM_MODES.indexOf(camMode) + 1) % CAM_MODES.length];
+      document.getElementById('camLabel').textContent = `CAM: ${camMode}`;
+    }
+
+    // --- MAIN TICK LOOP ---
+    let lastTime = performance.now();
+    function gameLoop(now) {
+      const dt = Math.min((now - lastTime) / 1000, 0.1);
+      lastTime = now;
+
+      updateGame(dt);
+      syncScene(now, dt);
+      updateCamera(dt);
+      renderer.render(scene, camera);
+      labelRenderer.render(scene, camera);
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    // --- INPUT EVENT HANDLING (MOUSE & TOUCH) ---
+    // Raycast the pointer onto the Z = 0 orbital plane and convert to world coordinates
+    function screenToWorld(clientX, clientY) {
+      const ndc = new THREE.Vector2(
+        (clientX / window.innerWidth) * 2 - 1,
+        -(clientY / window.innerHeight) * 2 + 1
+      );
+      raycaster.setFromCamera(ndc, camera);
+      const hit = new THREE.Vector3();
+      if (!raycaster.ray.intersectPlane(orbitalPlane, hit)) return null;
+      return { x: hit.x + WORLD_W / 2, y: -hit.y + WORLD_H / 2 };
+    }
+
+    function handlePointerDown(clientX, clientY) {
+      sfx.init();
+      if (gameState !== 'AIMING') return;
+
+      const w = screenToWorld(clientX, clientY);
+      if (!w) return;
+      const earthPos = getCoords(currentLevel.earth);
+      const dist = Math.hypot(w.x - earthPos.x, w.y - earthPos.y);
+
+      // Start drag if clicking reasonably near Earth
+      if (dist <= currentLevel.earth.radius * 2.5) {
+        isAiming = true;
+        dragStart.x = earthPos.x;
+        dragStart.y = earthPos.y;
+        dragCurrent.x = w.x;
+        dragCurrent.y = w.y;
+      }
+    }
+
+    function handlePointerMove(clientX, clientY) {
+      if (!isAiming) return;
+      const w = screenToWorld(clientX, clientY);
+      if (!w) return;
+      dragCurrent.x = w.x;
+      dragCurrent.y = w.y;
+    }
+
+    function handlePointerUp() {
+      if (!isAiming) return;
+      isAiming = false;
+
+      const aim = getAimVector();
+
+      // Minimal pull threshold to prevent accidental taps
+      if (aim.pullDist > 16) {
+        const lp = getLaunchPoint(aim.angle);
+        probe.x = lp.x;
+        probe.y = lp.y;
+        probe.vx = aim.vx;
+        probe.vy = aim.vy;
+        probe.trail = [{ x: probe.x, y: probe.y }];
+        probe.alive = true;
+        launchDeltaVUsed = aim.thrustPower;
+        chaseDir.set(aim.vx, -aim.vy, 0).normalize();
+
+        gameState = 'FLYING';
+        sfx.playLaunch();
+        spawnThrustParticles(probe.x, probe.y, probe.vx, probe.vy, 18, '#38bdf8');
+        document.getElementById('hintText').textContent = "Probe in flight! Monitoring orbital telemetry & gravitational forces...";
+      }
+    }
+
+    // Mouse Listeners (down on the canvas so HUD clicks never start a drag)
+    canvas.addEventListener('mousedown', (e) => handlePointerDown(e.clientX, e.clientY));
+    window.addEventListener('mousemove', (e) => handlePointerMove(e.clientX, e.clientY));
+    window.addEventListener('mouseup', handlePointerUp);
+
+    // Touch Listeners
+    canvas.addEventListener('touchstart', (e) => {
+      if (e.touches.length > 0) {
+        handlePointerDown(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    }, { passive: false });
+
+    window.addEventListener('touchmove', (e) => {
+      if (e.touches.length > 0 && isAiming) {
+        e.preventDefault();
+        handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    }, { passive: false });
+
+    window.addEventListener('touchend', handlePointerUp);
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'c' || e.key === 'C') cycleCamera();
+    });
+
+    // --- UI BUTTON WIRING ---
+    document.getElementById('btnCam').addEventListener('click', () => {
+      sfx.init();
+      cycleCamera();
+    });
+
+    document.getElementById('btnReset').addEventListener('click', () => {
+      sfx.init();
+      resetProbeToEarth();
+      document.getElementById('hintText').textContent = currentLevel.hint;
+    });
+
+    document.querySelectorAll('.lvl-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        sfx.init();
+        const lvl = parseInt(e.target.getAttribute('data-level'), 10);
+        loadLevel(lvl);
+      });
+    });
+
+    document.getElementById('modalRetryBtn').addEventListener('click', () => {
+      resetProbeToEarth();
+      document.getElementById('victoryModal').classList.add('hidden');
+    });
+
+    document.getElementById('modalNextBtn').addEventListener('click', () => {
+      loadLevel(currentLevelIndex + 1);
+    });
+
+    // Manual Modal controls
+    const manualModal = document.getElementById('manualModal');
+    document.getElementById('btnHelp').addEventListener('click', () => {
+      sfx.init();
+      manualModal.classList.remove('hidden');
+    });
+    document.getElementById('closeManualBtn').addEventListener('click', () => {
+      manualModal.classList.add('hidden');
+    });
+    document.getElementById('startFromManualBtn').addEventListener('click', () => {
+      manualModal.classList.add('hidden');
+    });
+
+    // Audio Mute Toggle
+    const btnAudio = document.getElementById('btnAudioToggle');
+    const audioLabel = document.getElementById('audioLabel');
+    btnAudio.addEventListener('click', () => {
+      sfx.init();
+      sfx.enabled = !sfx.enabled;
+      audioLabel.textContent = sfx.enabled ? 'SFX ON' : 'SFX OFF';
+      btnAudio.classList.toggle('text-slate-500', !sfx.enabled);
+    });
+
+    // Handle Window Resize
+    window.addEventListener('resize', () => {
+      if (!renderer) return; // resize can fire before window.onload builds the scene
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      labelRenderer.setSize(window.innerWidth, window.innerHeight);
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+    });
+
+    // Initialize Game on Load
+    window.onload = function () {
+      initScene();
+      loadLevel(0);
+      requestAnimationFrame(gameLoop);
+    };
+  </script>
+</body>
+</html>

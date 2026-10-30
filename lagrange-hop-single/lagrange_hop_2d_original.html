@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Lagrange Hop - Gravity Assist Trajectory Puzzle</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@500;700;900&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      background-color: #030712;
+      overflow: hidden;
+    }
+    .font-mono-tech {
+      font-family: 'Share Tech Mono', monospace;
+    }
+    .font-orbitron {
+      font-family: 'Orbitron', sans-serif;
+    }
+    /* Glow utilities */
+    .glow-cyan {
+      box-shadow: 0 0 20px rgba(6, 182, 212, 0.45);
+    }
+    .glow-amber {
+      box-shadow: 0 0 20px rgba(245, 158, 11, 0.45);
+    }
+    .glow-text-cyan {
+      text-shadow: 0 0 10px rgba(6, 182, 212, 0.7);
+    }
+    .glow-text-emerald {
+      text-shadow: 0 0 10px rgba(16, 185, 129, 0.7);
+    }
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+  </style>
+</head>
+<body class="relative w-screen h-screen overflow-hidden text-slate-100 bg-slate-950">
+
+  <!-- Interactive Game Canvas -->
+  <canvas id="gameCanvas" class="absolute inset-0 z-0"></canvas>
+
+  <!-- HUD: Top Header & Telemetry Dashboard -->
+  <header class="absolute top-0 left-0 right-0 z-10 p-3 sm:p-5 flex flex-wrap items-center justify-between pointer-events-none gap-2">
+    <!-- Brand / Level Info -->
+    <div class="flex items-center gap-3 bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-xl border border-cyan-500/30 glow-cyan pointer-events-auto">
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="inline-block w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></span>
+          <h1 class="text-xs sm:text-sm font-orbitron font-black tracking-widest text-cyan-400">LAGRANGE HOP</h1>
+        </div>
+        <p id="levelTitle" class="text-sm sm:text-base font-mono-tech font-bold text-white tracking-wide">MISSION 1: LUNAR SLINGSHOT</p>
+      </div>
+    </div>
+
+    <!-- Telemetry Stats -->
+    <div class="bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-xl border border-slate-700/60 font-mono-tech text-xs sm:text-sm flex items-center gap-4 sm:gap-6 pointer-events-auto">
+      <div>
+        <span class="text-slate-400 text-[10px] block uppercase">Velocity (Δv)</span>
+        <span id="telemetrySpeed" class="text-emerald-400 font-bold text-base glow-text-emerald">0.0 km/s</span>
+      </div>
+      <div>
+        <span class="text-slate-400 text-[10px] block uppercase">Gravity Slingshot</span>
+        <span id="telemetryBoost" class="text-cyan-300 font-bold text-base">1.0x</span>
+      </div>
+      <div>
+        <span class="text-slate-400 text-[10px] block uppercase">Fuel Remaining</span>
+        <div class="flex items-center gap-1.5 mt-0.5">
+          <div class="w-16 sm:w-24 h-2.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+            <div id="fuelBar" class="h-full bg-gradient-to-r from-amber-500 to-emerald-400 transition-all duration-150" style="width: 100%;"></div>
+          </div>
+          <span id="fuelVal" class="text-xs text-amber-300">100%</span>
+        </div>
+      </div>
+      <div>
+        <span class="text-slate-400 text-[10px] block uppercase">Beacons Captured</span>
+        <span id="telemetryTokens" class="text-yellow-400 font-bold text-base">0 / 3</span>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="flex items-center gap-2 pointer-events-auto">
+      <button id="btnAudioToggle" class="px-3 py-2 bg-slate-900/80 hover:bg-slate-800 rounded-lg border border-slate-700 text-slate-300 hover:text-white transition flex items-center gap-1.5 text-xs font-mono-tech" title="Toggle Audio">
+        <svg id="audioIcon" class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path></svg>
+        <span id="audioLabel">SFX ON</span>
+      </button>
+      <button id="btnReset" class="px-3 py-2 bg-slate-900/80 hover:bg-slate-800 rounded-lg border border-slate-700 text-slate-300 hover:text-white transition flex items-center gap-1.5 text-xs font-mono-tech">
+        <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+        <span>RELOAD PROBE</span>
+      </button>
+      <button id="btnHelp" class="px-3 py-2 bg-cyan-950/80 hover:bg-cyan-900 rounded-lg border border-cyan-500/40 text-cyan-300 transition text-xs font-mono-tech">
+        MANUAL
+      </button>
+    </div>
+  </header>
+
+  <!-- Level Select & Guidance Bar (Bottom) -->
+  <div class="absolute bottom-4 left-0 right-0 z-10 px-4 flex flex-col sm:flex-row items-center justify-between gap-3 pointer-events-none">
+    <!-- Slingshot Aim Guidance -->
+    <div id="aimHint" class="bg-slate-900/90 backdrop-blur-md px-4 py-2 rounded-full border border-cyan-500/30 text-xs sm:text-sm font-mono-tech text-cyan-300 flex items-center gap-2 pointer-events-auto">
+      <span class="inline-block w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+      <span id="hintText">Drag back from Earth to aim trajectory, release to launch!</span>
+    </div>
+
+    <!-- Level Selector Bar -->
+    <div class="flex items-center gap-2 bg-slate-900/90 backdrop-blur-md p-1.5 rounded-xl border border-slate-800 pointer-events-auto">
+      <span class="text-[11px] font-mono-tech uppercase text-slate-400 px-2">MISSION:</span>
+      <button data-level="0" class="lvl-btn px-3 py-1 rounded-lg text-xs font-orbitron font-bold bg-cyan-500 text-slate-950">01</button>
+      <button data-level="1" class="lvl-btn px-3 py-1 rounded-lg text-xs font-orbitron font-bold bg-slate-800 text-slate-300 hover:bg-slate-700">02</button>
+      <button data-level="2" class="lvl-btn px-3 py-1 rounded-lg text-xs font-orbitron font-bold bg-slate-800 text-slate-300 hover:bg-slate-700">03</button>
+    </div>
+  </div>
+
+  <!-- Modal: Mission Complete / Debrief Screen -->
+  <div id="victoryModal" class="hidden absolute inset-0 z-30 bg-slate-950/85 backdrop-blur-lg flex items-center justify-center p-4">
+    <div class="bg-slate-900 border-2 border-emerald-500/80 rounded-2xl p-6 sm:p-8 max-w-md w-full glow-cyan text-center relative overflow-hidden">
+      <div class="absolute -top-12 -right-12 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl"></div>
+      <div class="w-14 h-14 mx-auto mb-4 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center border border-emerald-500/40">
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+      </div>
+      <h2 class="text-2xl font-orbitron font-black text-emerald-400 tracking-wider mb-1">TARGET CAPTURED!</h2>
+      <p id="victoryDesc" class="text-xs sm:text-sm text-slate-300 font-mono-tech mb-5">Telemetry confirms safe insertion into target orbital capture envelope.</p>
+      
+      <!-- Stars & Metrics -->
+      <div class="bg-slate-950/80 rounded-xl p-4 border border-slate-800 mb-6 font-mono-tech text-left space-y-2 text-xs sm:text-sm">
+        <div class="flex justify-between items-center text-slate-400">
+          <span>Flight Time:</span>
+          <span id="metricTime" class="text-slate-200 font-bold">12.4s</span>
+        </div>
+        <div class="flex justify-between items-center text-slate-400">
+          <span>Fuel Efficiency:</span>
+          <span id="metricFuel" class="text-emerald-400 font-bold">84% (+200 pts)</span>
+        </div>
+        <div class="flex justify-between items-center text-slate-400">
+          <span>Max Slingshot Assist:</span>
+          <span id="metricBoost" class="text-cyan-400 font-bold">2.4x Multiplier</span>
+        </div>
+        <div class="flex justify-between items-center text-slate-400">
+          <span>Science Beacons:</span>
+          <span id="metricBeacons" class="text-yellow-400 font-bold">3 / 3</span>
+        </div>
+        <div class="pt-2 border-t border-slate-800 flex justify-between items-center text-base">
+          <span class="text-slate-300 font-bold">Mission Rating:</span>
+          <div id="starContainer" class="flex text-amber-400 text-lg">
+            ★★★
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex gap-3">
+        <button id="modalRetryBtn" class="flex-1 py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-orbitron text-xs font-bold transition">RETRY</button>
+        <button id="modalNextBtn" class="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-orbitron text-xs font-extrabold transition shadow-lg">NEXT MISSION</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Instructions / Flight Manual -->
+  <div id="manualModal" class="hidden absolute inset-0 z-30 bg-slate-950/85 backdrop-blur-lg flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-cyan-500/50 rounded-2xl p-6 sm:p-8 max-w-lg w-full font-mono-tech text-xs sm:text-sm space-y-4 text-slate-300 relative">
+      <button id="closeManualBtn" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg font-bold">✕</button>
+      <h3 class="text-xl font-orbitron font-bold text-cyan-400">FLIGHT CONTROLLER MANUAL</h3>
+      <div class="space-y-3">
+        <div class="flex items-start gap-3">
+          <div class="w-6 h-6 rounded bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-xs shrink-0">1</div>
+          <p><strong class="text-white">Slingshot Aiming:</strong> Click/touch on Earth and drag backward to apply delta-V thrust. Release to launch the probe into space.</p>
+        </div>
+        <div class="flex items-start gap-3">
+          <div class="w-6 h-6 rounded bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-xs shrink-0">2</div>
+          <p><strong class="text-white">Predictive Trajectory:</strong> The glowing dotted line simulates the future N-body gravitational trajectory in real-time before you fire.</p>
+        </div>
+        <div class="flex items-start gap-3">
+          <div class="w-6 h-6 rounded bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-xs shrink-0">3</div>
+          <p><strong class="text-white">Gravity Assist (Slingshot):</strong> Skim close to massive celestial bodies (like Moon or Jupiter) to gain kinetic energy and velocity without spending extra fuel.</p>
+        </div>
+        <div class="flex items-start gap-3">
+          <div class="w-6 h-6 rounded bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-xs shrink-0">4</div>
+          <p><strong class="text-white">Mission Success:</strong> Collect yellow scientific beacon telemetry nodes, then arrive inside the dashed green orbital capture perimeter of the destination planet.</p>
+        </div>
+      </div>
+      <button id="startFromManualBtn" class="w-full mt-4 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-orbitron font-bold transition">ENGAGE MISSION</button>
+    </div>
+  </div>
+
+  <script>
+    // --- SYNTHESIZED SOUND FX (Web Audio API - No external files) ---
+    class SoundFX {
+      constructor() {
+        this.ctx = null;
+        this.enabled = true;
+      }
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) {
+            this.ctx = new AudioContext();
+          }
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+      playLaunch() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(120, now);
+        osc.frequency.exponentialRampToValueAtTime(540, now + 0.35);
+
+        // Low pass filter for rocket burst sensation
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(400, now);
+        filter.frequency.exponentialRampToValueAtTime(2500, now + 0.2);
+
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.45);
+      }
+      playGravityBoost() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(320, now);
+        osc.frequency.exponentialRampToValueAtTime(880, now + 0.25);
+        gain.gain.setValueAtTime(0.18, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.3);
+      }
+      playBeacon() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(587.33, now); // D5
+        osc.frequency.setValueAtTime(880, now + 0.08); // A5
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.35);
+      }
+      playCrash() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        // White noise buffer
+        const bufferSize = this.ctx.sampleRate * 0.4;
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buffer;
+
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(800, now);
+        filter.frequency.exponentialRampToValueAtTime(80, now + 0.4);
+
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(0.4, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+        noise.start(now);
+      }
+      playVictory() {
+        if (!this.enabled || !this.ctx) return;
+        const notes = [440, 554.37, 659.25, 880]; // A major arpeggio
+        notes.forEach((freq, idx) => {
+          const now = this.ctx.currentTime + idx * 0.11;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.4);
+        });
+      }
+    }
+    const sfx = new SoundFX();
+
+    // --- GAME CONSTANTS & STATE ---
+    const G_CONSTANT = 3400; // Gravitational constant scaled for 2D screen coordinate dynamics
+    const MAX_LAUNCH_PULL = 180; // pixels
+    const MAX_DELTA_V = 9.8;
+    const PREDICTION_STEPS = 280;
+    const TIME_STEP = 0.35;
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let currentLevelIndex = 0;
+    let gameState = 'AIMING'; // 'AIMING', 'FLYING', 'CAPTURED', 'CRASHED', 'LOST'
+    let flightTimer = 0;
+    let maxBoostMultiplier = 1.0;
+    let launchDeltaVUsed = 0;
+
+    // Slingshot drag state
+    let isAiming = false;
+    let dragStart = { x: 0, y: 0 };
+    let dragCurrent = { x: 0, y: 0 };
+
+    // Stars background
+    let stars = [];
+
+    // Particle pool for exhaust and impacts
+    let particles = [];
+
+    // Probe entity
+    let probe = {
+      x: 0,
+      y: 0,
+      vx: 0,
+      vy: 0,
+      radius: 4.5,
+      trail: [],
+      maxTrail: 160,
+      alive: true,
+      fuelSpent: 0
+    };
+
+    // --- LEVEL DEFINITIONS ---
+    const LEVELS = [
+      {
+        id: 0,
+        title: "MISSION 01: LUNAR SLINGSHOT",
+        subtitle: "Harness the Moon's gravity well to slingshot towards the Deep Space Beacon.",
+        hint: "Pull back from Earth. Bend your trajectory curve behind the Moon for a free gravity boost!",
+        earth: { x: 0.16, y: 0.52, radius: 26, color: '#38bdf8', mass: 85, name: 'Earth' },
+        bodies: [
+          {
+            name: "Moon",
+            x: 0.52,
+            y: 0.48,
+            radius: 14,
+            mass: 22,
+            color: '#cbd5e1',
+            glow: 'rgba(203, 213, 225, 0.4)',
+            orbitCenter: { x: 0.52, y: 0.52 },
+            orbitRadius: 28,
+            orbitSpeed: 0.008,
+            angle: 0
+          }
+        ],
+        target: {
+          name: "Deep Space Relay",
+          x: 0.88,
+          y: 0.28,
+          radius: 16,
+          captureRadius: 46,
+          color: '#34d399',
+          glow: 'rgba(52, 211, 153, 0.5)'
+        },
+        beacons: [
+          { x: 0.42, y: 0.26, collected: false },
+          { x: 0.66, y: 0.38, collected: false },
+          { x: 0.82, y: 0.48, collected: false }
+        ],
+        hazards: []
+      },
+      {
+        id: 1,
+        title: "MISSION 02: MARS INSERTION",
+        subtitle: "Navigate the dense asteroid field and enter Mars' gravitational capture envelope.",
+        hint: "Thread the gap between dense asteroid clusters. Use delicate throttle control.",
+        earth: { x: 0.14, y: 0.72, radius: 26, color: '#38bdf8', mass: 85, name: 'Earth' },
+        bodies: [
+          {
+            name: "Mars",
+            x: 0.82,
+            y: 0.32,
+            radius: 20,
+            mass: 42,
+            color: '#fb923c',
+            glow: 'rgba(251, 146, 60, 0.5)',
+            isCaptureDestination: true,
+            captureRadius: 52
+          }
+        ],
+        target: {
+          name: "Mars Orbital Station",
+          x: 0.82,
+          y: 0.32,
+          radius: 20,
+          captureRadius: 54,
+          color: '#fb923c',
+          glow: 'rgba(251, 146, 60, 0.6)'
+        },
+        beacons: [
+          { x: 0.35, y: 0.52, collected: false },
+          { x: 0.56, y: 0.36, collected: false },
+          { x: 0.72, y: 0.62, collected: false }
+        ],
+        hazards: [
+          { x: 0.46, y: 0.66, radius: 14, color: '#78716c', name: 'Debris A' },
+          { x: 0.49, y: 0.46, radius: 16, color: '#78716c', name: 'Debris B' },
+          { x: 0.54, y: 0.24, radius: 15, color: '#78716c', name: 'Debris C' },
+          { x: 0.68, y: 0.16, radius: 12, color: '#78716c', name: 'Asteroid Ceres' }
+        ]
+      },
+      {
+        id: 2,
+        title: "MISSION 03: THE GRAND TOUR",
+        subtitle: "Double gravity assist: Slingshot between Jupiter & Ganymede to reach Europa.",
+        hint: "A massive gravity well will drastically curve your path. Master the dual Lagrange slingshot!",
+        earth: { x: 0.12, y: 0.5, radius: 25, color: '#38bdf8', mass: 80, name: 'Earth' },
+        bodies: [
+          {
+            name: "Jupiter",
+            x: 0.48,
+            y: 0.5,
+            radius: 36,
+            mass: 145,
+            color: '#f59e0b',
+            glow: 'rgba(245, 158, 11, 0.45)',
+            orbitCenter: null
+          },
+          {
+            name: "Ganymede",
+            x: 0.48,
+            y: 0.22,
+            radius: 12,
+            mass: 20,
+            color: '#a78bfa',
+            glow: 'rgba(167, 139, 250, 0.4)',
+            orbitCenter: { x: 0.48, y: 0.5 },
+            orbitRadius: 105,
+            orbitSpeed: 0.012,
+            angle: 1.5
+          }
+        ],
+        target: {
+          name: "Europa Research Base",
+          x: 0.88,
+          y: 0.5,
+          radius: 18,
+          captureRadius: 48,
+          color: '#2dd4bf',
+          glow: 'rgba(45, 212, 191, 0.55)'
+        },
+        beacons: [
+          { x: 0.32, y: 0.28, collected: false },
+          { x: 0.48, y: 0.84, collected: false },
+          { x: 0.70, y: 0.32, collected: false },
+          { x: 0.76, y: 0.68, collected: false }
+        ],
+        hazards: [
+          { x: 0.62, y: 0.48, radius: 11, color: '#78716c', name: 'Radiation Belt 1' },
+          { x: 0.34, y: 0.70, radius: 13, color: '#78716c', name: 'Space Junk' }
+        ]
+      }
+    ];
+
+    let currentLevel = null;
+
+    // --- INITIALIZATION & RESIZE ---
+    function resizeCanvas() {
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = window.innerWidth * dpr;
+      canvas.height = window.innerHeight * dpr;
+      ctx.scale(dpr, dpr);
+      createStarfield();
+      if (currentLevel && gameState === 'AIMING') {
+        resetProbeToEarth();
+      }
+    }
+
+    function createStarfield() {
+      stars = [];
+      const count = Math.floor((window.innerWidth * window.innerHeight) / 2800);
+      for (let i = 0; i < count; i++) {
+        stars.push({
+          x: Math.random() * window.innerWidth,
+          y: Math.random() * window.innerHeight,
+          radius: Math.random() * 1.5 + 0.3,
+          alpha: Math.random() * 0.7 + 0.3,
+          twinkleSpeed: Math.random() * 0.02 + 0.005,
+          twinklePhase: Math.random() * Math.PI * 2
+        });
+      }
+    }
+
+    function loadLevel(idx) {
+      currentLevelIndex = (idx + LEVELS.length) % LEVELS.length;
+      const rawLvl = LEVELS[currentLevelIndex];
+      // Clone deeply to allow modifications (e.g. collected beacons, dynamic orbits)
+      currentLevel = JSON.parse(JSON.stringify(rawLvl));
+
+      document.getElementById('levelTitle').textContent = currentLevel.title;
+      document.getElementById('hintText').textContent = currentLevel.hint;
+
+      // Update level button styles
+      document.querySelectorAll('.lvl-btn').forEach((btn, i) => {
+        if (i === currentLevelIndex) {
+          btn.className = 'lvl-btn px-3 py-1 rounded-lg text-xs font-orbitron font-bold bg-cyan-400 text-slate-950 shadow-md';
+        } else {
+          btn.className = 'lvl-btn px-3 py-1 rounded-lg text-xs font-orbitron font-bold bg-slate-800 text-slate-300 hover:bg-slate-700';
+        }
+      });
+
+      resetProbeToEarth();
+      document.getElementById('victoryModal').classList.add('hidden');
+    }
+
+    function getCoords(obj) {
+      return {
+        x: obj.x * window.innerWidth,
+        y: obj.y * window.innerHeight
+      };
+    }
+
+    function resetProbeToEarth() {
+      const earthPos = getCoords(currentLevel.earth);
+      probe.x = earthPos.x;
+      probe.y = earthPos.y;
+      probe.vx = 0;
+      probe.vy = 0;
+      probe.trail = [];
+      probe.alive = true;
+      probe.fuelSpent = 0;
+      flightTimer = 0;
+      maxBoostMultiplier = 1.0;
+      gameState = 'AIMING';
+      isAiming = false;
+
+      // Reset beacons collected for this attempt
+      currentLevel.beacons.forEach(b => b.collected = false);
+
+      updateTelemetryUI();
+    }
+
+    // --- PHYSICS ENGINE: N-BODY GRAVITATIONAL ACCELERATION ---
+    function calculateGravityAt(x, y, ignoreBodies = []) {
+      let ax = 0;
+      let ay = 0;
+      let minDistanceToBody = Infinity;
+      let closestBody = null;
+
+      // 1. Earth Gravity
+      const earthPos = getCoords(currentLevel.earth);
+      const dxE = earthPos.x - x;
+      const dyE = earthPos.y - y;
+      const distSqE = dxE * dxE + dyE * dyE;
+      const distE = Math.sqrt(distSqE);
+      if (distE > 5) {
+        const fE = (G_CONSTANT * currentLevel.earth.mass) / Math.max(distSqE, 400);
+        ax += (dxE / distE) * fE;
+        ay += (dyE / distE) * fE;
+      }
+
+      // 2. Celestial Planetary Bodies
+      currentLevel.bodies.forEach(b => {
+        let bPos = b.orbitCenter 
+          ? {
+              x: (b.orbitCenter.x * window.innerWidth) + Math.cos(b.angle || 0) * b.orbitRadius,
+              y: (b.orbitCenter.y * window.innerHeight) + Math.sin(b.angle || 0) * b.orbitRadius
+            }
+          : getCoords(b);
+
+        const dx = bPos.x - x;
+        const dy = bPos.y - y;
+        const distSq = dx * dx + dy * dy;
+        const dist = Math.sqrt(distSq);
+
+        if (dist < minDistanceToBody) {
+          minDistanceToBody = dist;
+          closestBody = b;
+        }
+
+        // Softened gravity to avoid infinite acceleration singularity at center
+        const softenedDistSq = Math.max(distSq, b.radius * b.radius * 0.85);
+        const f = (G_CONSTANT * b.mass) / softenedDistSq;
+        ax += (dx / dist) * f;
+        ay += (dy / dist) * f;
+      });
+
+      return { ax, ay, minDistanceToBody, closestBody };
+    }
+
+    // --- REAL-TIME TRAJECTORY PREDICTION ---
+    function calculatePredictiveTrajectory(startX, startY, initVx, initVy) {
+      const points = [];
+      let simX = startX;
+      let simY = startY;
+      let simVx = initVx;
+      let simVy = initVy;
+
+      points.push({ x: simX, y: simY });
+
+      for (let step = 0; step < PREDICTION_STEPS; step++) {
+        // Gravitational step
+        const grav = calculateGravityAt(simX, simY);
+        simVx += grav.ax * TIME_STEP;
+        simVy += grav.ay * TIME_STEP;
+        simX += simVx * TIME_STEP;
+        simY += simVy * TIME_STEP;
+
+        points.push({ x: simX, y: simY });
+
+        // Check if path collides with Earth
+        const earthPos = getCoords(currentLevel.earth);
+        const dEarth = Math.hypot(earthPos.x - simX, earthPos.y - simY);
+        if (step > 4 && dEarth <= currentLevel.earth.radius) break;
+
+        // Check if path collides with planets
+        let collided = false;
+        for (const b of currentLevel.bodies) {
+          let bPos = b.orbitCenter 
+            ? {
+                x: (b.orbitCenter.x * window.innerWidth) + Math.cos(b.angle || 0) * b.orbitRadius,
+                y: (b.orbitCenter.y * window.innerHeight) + Math.sin(b.angle || 0) * b.orbitRadius
+              }
+            : getCoords(b);
+          if (Math.hypot(bPos.x - simX, bPos.y - simY) <= b.radius) {
+            collided = true;
+            break;
+          }
+        }
+        if (collided) break;
+
+        // Check target encounter
+        const tgtPos = getCoords(currentLevel.target);
+        if (Math.hypot(tgtPos.x - simX, tgtPos.y - simY) <= currentLevel.target.captureRadius) {
+          // Path reached target envelope
+          break;
+        }
+
+        // Check out of bounds
+        if (simX < -150 || simX > window.innerWidth + 150 || simY < -150 || simY > window.innerHeight + 150) {
+          break;
+        }
+      }
+      return points;
+    }
+
+    // --- PARTICLES & FX ---
+    function spawnThrustParticles(x, y, vx, vy, count = 3, color = '#38bdf8') {
+      for (let i = 0; i < count; i++) {
+        particles.push({
+          x: x,
+          y: y,
+          vx: -vx * 0.4 + (Math.random() - 0.5) * 1.5,
+          vy: -vy * 0.4 + (Math.random() - 0.5) * 1.5,
+          size: Math.random() * 2.8 + 1.2,
+          life: 1.0,
+          decay: Math.random() * 0.04 + 0.02,
+          color: color
+        });
+      }
+    }
+
+    function spawnExplosion(x, y, color = '#f97316') {
+      for (let i = 0; i < 35; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 4.5 + 0.8;
+        particles.push({
+          x: x,
+          y: y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          size: Math.random() * 3.5 + 1.5,
+          life: 1.0,
+          decay: Math.random() * 0.025 + 0.015,
+          color: i % 2 === 0 ? color : '#fde047'
+        });
+      }
+    }
+
+    function spawnCaptureRipples(x, y) {
+      for (let i = 0; i < 25; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 3.0 + 1.0;
+        particles.push({
+          x: x,
+          y: y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          size: Math.random() * 2.5 + 1,
+          life: 1.0,
+          decay: 0.02,
+          color: '#34d399'
+        });
+      }
+    }
+
+    // --- GAME LOOP & UPDATES ---
+    function updateGame(dt) {
+      // 1. Orbit animation for planetary moons
+      currentLevel.bodies.forEach(b => {
+        if (b.orbitCenter && b.orbitSpeed) {
+          b.angle = (b.angle || 0) + b.orbitSpeed;
+        }
+      });
+
+      // 2. Flight Dynamics
+      if (gameState === 'FLYING' && probe.alive) {
+        flightTimer += dt;
+
+        // Gravity calculation
+        const grav = calculateGravityAt(probe.x, probe.y);
+        const prevSpeed = Math.hypot(probe.vx, probe.vy);
+
+        probe.vx += grav.ax * TIME_STEP;
+        probe.vy += grav.ay * TIME_STEP;
+        probe.x += probe.vx * TIME_STEP;
+        probe.y += probe.vy * TIME_STEP;
+
+        const currentSpeed = Math.hypot(probe.vx, probe.vy);
+
+        // Detect Slingshot Velocity Gain
+        if (currentSpeed > prevSpeed + 0.04 && grav.closestBody && grav.minDistanceToBody < grav.closestBody.radius * 3.8) {
+          const ratio = (currentSpeed / (launchDeltaVUsed || 1));
+          if (ratio > maxBoostMultiplier) {
+            maxBoostMultiplier = parseFloat(ratio.toFixed(2));
+            sfx.playGravityBoost();
+            spawnThrustParticles(probe.x, probe.y, probe.vx, probe.vy, 4, '#a855f7');
+          }
+        }
+
+        // Add to historical trail
+        probe.trail.push({ x: probe.x, y: probe.y });
+        if (probe.trail.length > probe.maxTrail) {
+          probe.trail.shift();
+        }
+
+        // Engine exhaust glow
+        if (Math.random() > 0.4) {
+          spawnThrustParticles(probe.x, probe.y, probe.vx, probe.vy, 1, '#38bdf8');
+        }
+
+        // Check Beacon Collections
+        currentLevel.beacons.forEach(beacon => {
+          if (!beacon.collected) {
+            const bPos = getCoords(beacon);
+            if (Math.hypot(probe.x - bPos.x, probe.y - bPos.y) < probe.radius + 14) {
+              beacon.collected = true;
+              sfx.playBeacon();
+              spawnCaptureRipples(bPos.x, bPos.y);
+            }
+          }
+        });
+
+        // Check Collision: Earth
+        const earthPos = getCoords(currentLevel.earth);
+        if (Math.hypot(probe.x - earthPos.x, probe.y - earthPos.y) <= currentLevel.earth.radius) {
+          triggerCrash("Probe crashed into Earth's atmosphere.");
+        }
+
+        // Check Collision: Planets
+        currentLevel.bodies.forEach(b => {
+          let bPos = b.orbitCenter 
+            ? {
+                x: (b.orbitCenter.x * window.innerWidth) + Math.cos(b.angle || 0) * b.orbitRadius,
+                y: (b.orbitCenter.y * window.innerHeight) + Math.sin(b.angle || 0) * b.orbitRadius
+              }
+            : getCoords(b);
+          if (Math.hypot(probe.x - bPos.x, probe.y - bPos.y) <= b.radius) {
+            triggerCrash(`Surface impact on ${b.name}!`);
+          }
+        });
+
+        // Check Collision: Hazards (Asteroids/Debris)
+        currentLevel.hazards.forEach(hz => {
+          const hzPos = getCoords(hz);
+          if (Math.hypot(probe.x - hzPos.x, probe.y - hzPos.y) <= hz.radius + probe.radius) {
+            triggerCrash(`Destroyed by collision with ${hz.name}!`);
+          }
+        });
+
+        // Check Target Orbital Capture
+        const tgtPos = getCoords(currentLevel.target);
+        const distToTarget = Math.hypot(probe.x - tgtPos.x, probe.y - tgtPos.y);
+
+        if (distToTarget <= currentLevel.target.captureRadius) {
+          // If speed is not excessively hypersonic, captured!
+          if (currentSpeed < 14) {
+            triggerVictory();
+          } else {
+            // Speed too high to enter stable orbit
+            document.getElementById('hintText').textContent = "Hyperbolic escape velocity! Speed too high for orbital capture.";
+          }
+        }
+
+        // Check Out of Bounds
+        if (
+          probe.x < -200 || 
+          probe.x > window.innerWidth + 200 || 
+          probe.y < -200 || 
+          probe.y > window.innerHeight + 200
+        ) {
+          triggerLost("Deep space drift. Probe lost into the cosmic void.");
+        }
+
+        updateTelemetryUI();
+      }
+
+      // 3. Update particle dynamics
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= p.decay;
+        if (p.life <= 0) {
+          particles.splice(i, 1);
+        }
+      }
+    }
+
+    function triggerCrash(reason) {
+      probe.alive = false;
+      gameState = 'CRASHED';
+      sfx.playCrash();
+      spawnExplosion(probe.x, probe.y, '#ef4444');
+      document.getElementById('hintText').textContent = `CRITICAL FAILURE: ${reason} Press Reload to retry.`;
+    }
+
+    function triggerLost(reason) {
+      probe.alive = false;
+      gameState = 'LOST';
+      document.getElementById('hintText').textContent = reason + " Press Reload to aim again.";
+    }
+
+    function triggerVictory() {
+      gameState = 'CAPTURED';
+      probe.alive = false;
+      sfx.playVictory();
+      const tgtPos = getCoords(currentLevel.target);
+      spawnCaptureRipples(tgtPos.x, tgtPos.y);
+
+      // Score Calculation
+      const beaconsCollected = currentLevel.beacons.filter(b => b.collected).length;
+      const totalBeacons = currentLevel.beacons.length;
+      const fuelRemainingPct = Math.max(0, Math.round(100 - (launchDeltaVUsed / MAX_DELTA_V) * 100));
+
+      let starsCount = 1;
+      if (fuelRemainingPct >= 40 && beaconsCollected >= 1) starsCount = 2;
+      if (fuelRemainingPct >= 65 && beaconsCollected === totalBeacons) starsCount = 3;
+
+      document.getElementById('metricTime').textContent = `${flightTimer.toFixed(1)}s`;
+      document.getElementById('metricFuel').textContent = `${fuelRemainingPct}% fuel left`;
+      document.getElementById('metricBoost').textContent = `${maxBoostMultiplier.toFixed(2)}x Multiplier`;
+      document.getElementById('metricBeacons').textContent = `${beaconsCollected} / ${totalBeacons}`;
+
+      let starIcons = '';
+      for (let s = 0; s < 3; s++) {
+        starIcons += s < starsCount ? '★' : '<span class="text-slate-700">★</span>';
+      }
+      document.getElementById('starContainer').innerHTML = starIcons;
+
+      document.getElementById('victoryModal').classList.remove('hidden');
+    }
+
+    function updateTelemetryUI() {
+      const curSpeed = (Math.hypot(probe.vx, probe.vy) * 2.8).toFixed(1);
+      document.getElementById('telemetrySpeed').textContent = `${curSpeed} km/s`;
+      document.getElementById('telemetryBoost').textContent = `${maxBoostMultiplier.toFixed(1)}x`;
+
+      const fuelSpentFraction = Math.min(1, launchDeltaVUsed / MAX_DELTA_V);
+      const fuelPercent = Math.max(0, Math.round((1 - fuelSpentFraction) * 100));
+      document.getElementById('fuelBar').style.width = `${fuelPercent}%`;
+      document.getElementById('fuelVal').textContent = `${fuelPercent}%`;
+
+      const collected = currentLevel.beacons.filter(b => b.collected).length;
+      document.getElementById('telemetryTokens').textContent = `${collected} / ${currentLevel.beacons.length}`;
+    }
+
+    // --- DRAWING ROUTINES ---
+    function drawGame() {
+      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+      // 1. Draw Starfield with faint twinkling
+      stars.forEach(st => {
+        st.twinklePhase += st.twinkleSpeed;
+        const currentAlpha = st.alpha + Math.sin(st.twinklePhase) * 0.25;
+        ctx.fillStyle = `rgba(255, 255, 255, ${Math.max(0.1, currentAlpha)})`;
+        ctx.beginPath();
+        ctx.arc(st.x, st.y, st.radius, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // 2. Draw Gravity Field Contours around Massive Celestial Bodies
+      currentLevel.bodies.forEach(b => {
+        let bPos = b.orbitCenter 
+          ? {
+              x: (b.orbitCenter.x * window.innerWidth) + Math.cos(b.angle || 0) * b.orbitRadius,
+              y: (b.orbitCenter.y * window.innerHeight) + Math.sin(b.angle || 0) * b.orbitRadius
+            }
+          : getCoords(b);
+
+        // Multiple concentric gravity well rings
+        for (let ring = 1; ring <= 3; ring++) {
+          const rRadius = b.radius + ring * 28;
+          ctx.strokeStyle = `rgba(56, 189, 248, ${0.16 / ring})`;
+          ctx.lineWidth = 1;
+          ctx.setLineDash([4, 6]);
+          ctx.beginPath();
+          ctx.arc(bPos.x, bPos.y, rRadius, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        ctx.setLineDash([]);
+      });
+
+      // 3. Draw Target Capture Zone
+      const tgtPos = getCoords(currentLevel.target);
+      ctx.save();
+      // Outer capture perimeter (pulsing green glow)
+      ctx.strokeStyle = currentLevel.target.color;
+      ctx.lineWidth = 1.8;
+      ctx.setLineDash([6, 6]);
+      ctx.beginPath();
+      ctx.arc(tgtPos.x, tgtPos.y, currentLevel.target.captureRadius, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Subtle radial fill for target capture area
+      const gradTgt = ctx.createRadialGradient(tgtPos.x, tgtPos.y, 0, tgtPos.x, tgtPos.y, currentLevel.target.captureRadius);
+      gradTgt.addColorStop(0, 'rgba(52, 211, 153, 0.22)');
+      gradTgt.addColorStop(1, 'rgba(52, 211, 153, 0)');
+      ctx.fillStyle = gradTgt;
+      ctx.beginPath();
+      ctx.arc(tgtPos.x, tgtPos.y, currentLevel.target.captureRadius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Target Station Core
+      ctx.fillStyle = currentLevel.target.color;
+      ctx.beginPath();
+      ctx.arc(tgtPos.x, tgtPos.y, currentLevel.target.radius * 0.45, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Target Name Label
+      ctx.font = '10px "Share Tech Mono"';
+      ctx.fillStyle = '#6ee7b7';
+      ctx.textAlign = 'center';
+      ctx.fillText(currentLevel.target.name.toUpperCase(), tgtPos.x, tgtPos.y - currentLevel.target.captureRadius - 8);
+      ctx.restore();
+
+      // 4. Draw Hazards (Asteroid clusters/debris)
+      currentLevel.hazards.forEach(hz => {
+        const hzPos = getCoords(hz);
+        ctx.save();
+        ctx.fillStyle = hz.color;
+        ctx.strokeStyle = '#a8a29e';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        // Irregular faceted asteroid shape
+        const vertices = 7;
+        for (let i = 0; i < vertices; i++) {
+          const angle = (i / vertices) * Math.PI * 2;
+          const r = hz.radius * (0.8 + ((i * 37) % 5) * 0.08);
+          const px = hzPos.x + Math.cos(angle) * r;
+          const py = hzPos.y + Math.sin(angle) * r;
+          if (i === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.font = '9px "Share Tech Mono"';
+        ctx.fillStyle = '#a8a29e';
+        ctx.textAlign = 'center';
+        ctx.fillText(hz.name, hzPos.x, hzPos.y + hz.radius + 12);
+        ctx.restore();
+      });
+
+      // 5. Draw Planetary Bodies
+      currentLevel.bodies.forEach(b => {
+        let bPos = b.orbitCenter 
+          ? {
+              x: (b.orbitCenter.x * window.innerWidth) + Math.cos(b.angle || 0) * b.orbitRadius,
+              y: (b.orbitCenter.y * window.innerHeight) + Math.sin(b.angle || 0) * b.orbitRadius
+            }
+          : getCoords(b);
+
+        // Orbit track line if orbiting
+        if (b.orbitCenter) {
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.arc(b.orbitCenter.x * window.innerWidth, b.orbitCenter.y * window.innerHeight, b.orbitRadius, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        ctx.save();
+        // Atmospheric glow ring
+        const radGlow = ctx.createRadialGradient(bPos.x, bPos.y, b.radius * 0.8, bPos.x, bPos.y, b.radius * 1.5);
+        radGlow.addColorStop(0, b.glow || 'rgba(56, 189, 248, 0.4)');
+        radGlow.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = radGlow;
+        ctx.beginPath();
+        ctx.arc(bPos.x, bPos.y, b.radius * 1.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Planet body
+        ctx.fillStyle = b.color;
+        ctx.beginPath();
+        ctx.arc(bPos.x, bPos.y, b.radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Label
+        ctx.font = '11px "Share Tech Mono"';
+        ctx.fillStyle = '#e2e8f0';
+        ctx.textAlign = 'center';
+        ctx.fillText(b.name, bPos.x, bPos.y + b.radius + 14);
+        ctx.restore();
+      });
+
+      // 6. Draw Earth
+      const earthPos = getCoords(currentLevel.earth);
+      ctx.save();
+      const earthGlow = ctx.createRadialGradient(earthPos.x, earthPos.y, currentLevel.earth.radius * 0.7, earthPos.x, earthPos.y, currentLevel.earth.radius * 1.6);
+      earthGlow.addColorStop(0, 'rgba(56, 189, 248, 0.5)');
+      earthGlow.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = earthGlow;
+      ctx.beginPath();
+      ctx.arc(earthPos.x, earthPos.y, currentLevel.earth.radius * 1.6, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Earth body
+      ctx.fillStyle = currentLevel.earth.color;
+      ctx.beginPath();
+      ctx.arc(earthPos.x, earthPos.y, currentLevel.earth.radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Continent-like decorative curve
+      ctx.fillStyle = '#0284c7';
+      ctx.beginPath();
+      ctx.arc(earthPos.x - 4, earthPos.y + 2, currentLevel.earth.radius * 0.7, 0, Math.PI);
+      ctx.fill();
+
+      ctx.font = '11px "Share Tech Mono"';
+      ctx.fillStyle = '#bae6fd';
+      ctx.textAlign = 'center';
+      ctx.fillText("EARTH (BASE)", earthPos.x, earthPos.y + currentLevel.earth.radius + 16);
+      ctx.restore();
+
+      // 7. Draw Scientific Beacons (Data Nodes)
+      currentLevel.beacons.forEach((bc, idx) => {
+        const bPos = getCoords(bc);
+        ctx.save();
+        if (!bc.collected) {
+          // Uncollected: diamond shape with spinning pulse
+          const pulse = Math.sin(Date.now() * 0.005 + idx) * 2;
+          ctx.fillStyle = '#facc15';
+          ctx.strokeStyle = '#fef08a';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(bPos.x, bPos.y - 8 - pulse);
+          ctx.lineTo(bPos.x + 8 + pulse, bPos.y);
+          ctx.lineTo(bPos.x, bPos.y + 8 + pulse);
+          ctx.lineTo(bPos.x - 8 - pulse, bPos.y);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.font = '9px "Share Tech Mono"';
+          ctx.fillStyle = '#fde047';
+          ctx.textAlign = 'center';
+          ctx.fillText(`BEACON ${idx+1}`, bPos.x, bPos.y - 12 - pulse);
+        } else {
+          // Collected ghost node
+          ctx.strokeStyle = 'rgba(250, 204, 21, 0.2)';
+          ctx.strokeRect(bPos.x - 4, bPos.y - 4, 8, 8);
+        }
+        ctx.restore();
+      });
+
+      // 8. Slingshot Aim Vector & Predictive Trajectory
+      if (gameState === 'AIMING') {
+        const earthPos = getCoords(currentLevel.earth);
+
+        if (isAiming) {
+          // Aim drag vector
+          const pullDx = dragStart.x - dragCurrent.x;
+          const pullDy = dragStart.y - dragCurrent.y;
+          const pullDist = Math.hypot(pullDx, pullDy);
+          const clampedPull = Math.min(pullDist, MAX_LAUNCH_PULL);
+          const angle = Math.atan2(pullDy, pullDx);
+
+          // Simulated Delta-V thrust
+          const thrustPower = (clampedPull / MAX_LAUNCH_PULL) * MAX_DELTA_V;
+          const initVx = Math.cos(angle) * thrustPower;
+          const initVy = Math.sin(angle) * thrustPower;
+
+          // Draw rubberband slingshot cord
+          ctx.strokeStyle = 'rgba(244, 63, 94, 0.8)';
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.moveTo(earthPos.x, earthPos.y);
+          ctx.lineTo(dragCurrent.x, dragCurrent.y);
+          ctx.stroke();
+
+          // Reticle at pull position
+          ctx.fillStyle = '#f43f5e';
+          ctx.beginPath();
+          ctx.arc(dragCurrent.x, dragCurrent.y, 6, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Calculate and Draw Predictive Trajectory (Curved dotted line)
+          const trajectoryPoints = calculatePredictiveTrajectory(earthPos.x, earthPos.y, initVx, initVy);
+          if (trajectoryPoints.length > 1) {
+            ctx.save();
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 6]);
+            ctx.beginPath();
+            ctx.moveTo(trajectoryPoints[0].x, trajectoryPoints[0].y);
+            for (let i = 1; i < trajectoryPoints.length; i++) {
+              ctx.lineTo(trajectoryPoints[i].x, trajectoryPoints[i].y);
+            }
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Trajectory terminator indicator
+            const lastPt = trajectoryPoints[trajectoryPoints.length - 1];
+            ctx.fillStyle = '#38bdf8';
+            ctx.beginPath();
+            ctx.arc(lastPt.x, lastPt.y, 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+          }
+
+          // Aiming Stats overlay
+          ctx.font = '12px "Share Tech Mono"';
+          ctx.fillStyle = '#f43f5e';
+          ctx.fillText(`Δv: ${thrustPower.toFixed(1)} km/s`, dragCurrent.x + 12, dragCurrent.y - 10);
+        } else {
+          // Subtle pulsation around Earth to prompt interaction
+          const p = Math.sin(Date.now() * 0.006) * 4;
+          ctx.strokeStyle = 'rgba(56, 189, 248, 0.5)';
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([4, 4]);
+          ctx.beginPath();
+          ctx.arc(earthPos.x, earthPos.y, currentLevel.earth.radius + 10 + p, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+      }
+
+      // 9. Draw Probe Trail
+      if (probe.trail.length > 1) {
+        ctx.save();
+        for (let i = 1; i < probe.trail.length; i++) {
+          const alpha = i / probe.trail.length;
+          ctx.strokeStyle = `rgba(56, 189, 248, ${alpha * 0.75})`;
+          ctx.lineWidth = Math.max(1, alpha * 2.5);
+          ctx.beginPath();
+          ctx.moveTo(probe.trail[i - 1].x, probe.trail[i - 1].y);
+          ctx.lineTo(probe.trail[i].x, probe.trail[i].y);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      // 10. Draw Particles
+      particles.forEach(p => {
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = Math.max(0, p.life);
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
+      });
+
+      // 11. Draw Space Probe Vessel
+      if (probe.alive && gameState !== 'AIMING') {
+        ctx.save();
+        ctx.translate(probe.x, probe.y);
+        const heading = Math.atan2(probe.vy, probe.vx);
+        ctx.rotate(heading);
+
+        // Probe Solar Array Panels
+        ctx.fillStyle = '#0284c7';
+        ctx.fillRect(-3, -11, 6, 22);
+
+        // Probe Core Body
+        ctx.fillStyle = '#f8fafc';
+        ctx.beginPath();
+        ctx.moveTo(7, 0);
+        ctx.lineTo(-5, -4.5);
+        ctx.lineTo(-3, 0);
+        ctx.lineTo(-5, 4.5);
+        ctx.closePath();
+        ctx.fill();
+
+        // Science dish beacon
+        ctx.fillStyle = '#38bdf8';
+        ctx.beginPath();
+        ctx.arc(2, 0, 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+      }
+    }
+
+    // --- MAIN TICK LOOP ---
+    let lastTime = performance.now();
+    function gameLoop(now) {
+      const dt = Math.min((now - lastTime) / 1000, 0.1);
+      lastTime = now;
+
+      updateGame(dt);
+      drawGame();
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    // --- INPUT EVENT HANDLING (MOUSE & TOUCH) ---
+    function handlePointerDown(clientX, clientY) {
+      sfx.init();
+      if (gameState !== 'AIMING') return;
+
+      const earthPos = getCoords(currentLevel.earth);
+      const dist = Math.hypot(clientX - earthPos.x, clientY - earthPos.y);
+
+      // Start drag if clicking reasonably near Earth
+      if (dist <= currentLevel.earth.radius * 2.5) {
+        isAiming = true;
+        dragStart.x = earthPos.x;
+        dragStart.y = earthPos.y;
+        dragCurrent.x = clientX;
+        dragCurrent.y = clientY;
+      }
+    }
+
+    function handlePointerMove(clientX, clientY) {
+      if (!isAiming) return;
+      dragCurrent.x = clientX;
+      dragCurrent.y = clientY;
+    }
+
+    function handlePointerUp() {
+      if (!isAiming) return;
+      isAiming = false;
+
+      const earthPos = getCoords(currentLevel.earth);
+      const pullDx = dragStart.x - dragCurrent.x;
+      const pullDy = dragStart.y - dragCurrent.y;
+      const pullDist = Math.hypot(pullDx, pullDy);
+
+      // Minimal pull threshold to prevent accidental taps
+      if (pullDist > 16) {
+        const clampedPull = Math.min(pullDist, MAX_LAUNCH_PULL);
+        const angle = Math.atan2(pullDy, pullDx);
+        const thrustPower = (clampedPull / MAX_LAUNCH_PULL) * MAX_DELTA_V;
+
+        probe.x = earthPos.x;
+        probe.y = earthPos.y;
+        probe.vx = Math.cos(angle) * thrustPower;
+        probe.vy = Math.sin(angle) * thrustPower;
+        probe.trail = [{ x: probe.x, y: probe.y }];
+        probe.alive = true;
+        launchDeltaVUsed = thrustPower;
+
+        gameState = 'FLYING';
+        sfx.playLaunch();
+        spawnThrustParticles(probe.x, probe.y, probe.vx, probe.vy, 18, '#38bdf8');
+        document.getElementById('hintText').textContent = "Probe in flight! Monitoring orbital telemetry & gravitational forces...";
+      }
+    }
+
+    // Mouse Listeners
+    window.addEventListener('mousedown', (e) => handlePointerDown(e.clientX, e.clientY));
+    window.addEventListener('mousemove', (e) => handlePointerMove(e.clientX, e.clientY));
+    window.addEventListener('mouseup', handlePointerUp);
+
+    // Touch Listeners
+    window.addEventListener('touchstart', (e) => {
+      if (e.touches.length > 0) {
+        handlePointerDown(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    }, { passive: false });
+
+    window.addEventListener('touchmove', (e) => {
+      if (e.touches.length > 0 && isAiming) {
+        e.preventDefault();
+        handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    }, { passive: false });
+
+    window.addEventListener('touchend', handlePointerUp);
+
+    // --- UI BUTTON WIRING ---
+    document.getElementById('btnReset').addEventListener('click', () => {
+      sfx.init();
+      resetProbeToEarth();
+      document.getElementById('hintText').textContent = currentLevel.hint;
+    });
+
+    document.querySelectorAll('.lvl-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        sfx.init();
+        const lvl = parseInt(e.target.getAttribute('data-level'), 10);
+        loadLevel(lvl);
+      });
+    });
+
+    document.getElementById('modalRetryBtn').addEventListener('click', () => {
+      resetProbeToEarth();
+      document.getElementById('victoryModal').classList.add('hidden');
+    });
+
+    document.getElementById('modalNextBtn').addEventListener('click', () => {
+      loadLevel(currentLevelIndex + 1);
+    });
+
+    // Manual Modal controls
+    const manualModal = document.getElementById('manualModal');
+    document.getElementById('btnHelp').addEventListener('click', () => {
+      sfx.init();
+      manualModal.classList.remove('hidden');
+    });
+    document.getElementById('closeManualBtn').addEventListener('click', () => {
+      manualModal.classList.add('hidden');
+    });
+    document.getElementById('startFromManualBtn').addEventListener('click', () => {
+      manualModal.classList.add('hidden');
+    });
+
+    // Audio Mute Toggle
+    const btnAudio = document.getElementById('btnAudioToggle');
+    const audioLabel = document.getElementById('audioLabel');
+    btnAudio.addEventListener('click', () => {
+      sfx.init();
+      sfx.enabled = !sfx.enabled;
+      audioLabel.textContent = sfx.enabled ? 'SFX ON' : 'SFX OFF';
+      btnAudio.classList.toggle('text-slate-500', !sfx.enabled);
+    });
+
+    // Handle Window Resize
+    window.addEventListener('resize', () => {
+      resizeCanvas();
+    });
+
+    // Initialize Game on Load
+    window.onload = function () {
+      loadLevel(0);
+      resizeCanvas();
+      requestAnimationFrame(gameLoop);
+    };
+  </script>
+</body>
+</html>
