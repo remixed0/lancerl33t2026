@@ -8,6 +8,21 @@ Angry Birds-style gravity-assist puzzle. Drag back from Earth to launch a probe,
 ## Controls
 - Drag from Earth and release to launch.
 - **CAM** button or `C` key cycles TOP / CHASE / ISO camera views.
+- Click the mission panel (top left) to open the **Mission Log**: every mission's status and best stars. `Esc` closes it.
+
+## Campaign
+8 missions, each unlocked by completing the one before (progress is saved in the browser; **Reset Progress** is at the bottom of the Mission Log):
+
+1. Lunar Slingshot: one moving moon
+2. Mars Insertion: asteroid field
+3. Venus Swing-By: heavy planet, scattered debris
+4. Asteroid Belt Run: thread a 6-rock belt, two dwarf planets
+5. The Grand Tour: Jupiter + orbiting Ganymede
+6. Saturn Ring Dive: ringed Saturn, two counter-orbiting moons, ring debris
+7. Ice Giant Relay: Uranus, Neptune, orbiting Triton
+8. Heliopause Gauntlet: three giants, Io, 8 Kuiper objects, smallest dock
+
+Rating: 1★ capture, 2★ at least half the beacons, 3★ every beacon. Beacons were placed along simulated winning paths, so every mission has a verified 3-star shot.
 
 ## Changes from the 2D original
 - Physics run in a fixed 1600×900 world, so window size no longer changes trajectories.
@@ -15,6 +30,3 @@ Angry Birds-style gravity-assist puzzle. Drag back from Earth to launch a probe,
 - Probe launches from Earth's surface, not its centre.
 - Trajectory preview is 600 steps, advances orbiting moons in lockstep with the flight, and stops at hazards.
 - Fuel no longer carries over between missions.
-
-## Known issue
-Beacon/planet layouts were designed for the old gravity; at the new strength a full 3-star run (all beacons) may not be reachable. Levels need retuning.

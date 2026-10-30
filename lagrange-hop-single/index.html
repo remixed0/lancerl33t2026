@@ -60,15 +60,17 @@
   <!-- HUD: Top Header & Telemetry Dashboard -->
   <header class="absolute top-0 left-0 right-0 z-10 p-3 sm:p-5 flex flex-wrap items-center justify-between pointer-events-none gap-2">
     <!-- Brand / Level Info -->
-    <div class="flex items-center gap-3 bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-xl border border-cyan-500/30 glow-cyan pointer-events-auto">
+    <button id="btnMissionLog" class="flex items-center gap-3 bg-slate-900/80 hover:bg-slate-800/90 backdrop-blur-md px-4 py-2 rounded-xl border border-cyan-500/30 hover:border-cyan-400/70 glow-cyan pointer-events-auto text-left transition" title="Open mission log">
       <div>
         <div class="flex items-center gap-2">
           <span class="inline-block w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></span>
           <h1 class="text-xs sm:text-sm font-orbitron font-black tracking-widest text-cyan-400">LAGRANGE HOP</h1>
+          <span id="missionCounter" class="text-[10px] font-mono-tech text-slate-400">1 / 8</span>
         </div>
         <p id="levelTitle" class="text-sm sm:text-base font-mono-tech font-bold text-white tracking-wide">MISSION 1: LUNAR SLINGSHOT</p>
       </div>
-    </div>
+      <svg class="w-4 h-4 text-cyan-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h10"></path></svg>
+    </button>
 
     <!-- Telemetry Stats -->
     <div class="bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-xl border border-slate-700/60 font-mono-tech text-xs sm:text-sm flex items-center gap-4 sm:gap-6 pointer-events-auto">
@@ -124,13 +126,33 @@
     </div>
 
     <!-- Level Selector Bar -->
-    <div class="flex items-center gap-2 bg-slate-900/90 backdrop-blur-md p-1.5 rounded-xl border border-slate-800 pointer-events-auto">
+    <div class="flex items-center gap-1 bg-slate-900/90 backdrop-blur-md p-1.5 rounded-xl border border-slate-800 pointer-events-auto">
       <span class="text-[11px] font-mono-tech uppercase text-slate-400 px-2">MISSION:</span>
-      <button data-level="0" class="lvl-btn px-3 py-1 rounded-lg text-xs font-orbitron font-bold bg-cyan-500 text-slate-950">01</button>
-      <button data-level="1" class="lvl-btn px-3 py-1 rounded-lg text-xs font-orbitron font-bold bg-slate-800 text-slate-300 hover:bg-slate-700">02</button>
-      <button data-level="2" class="lvl-btn px-3 py-1 rounded-lg text-xs font-orbitron font-bold bg-slate-800 text-slate-300 hover:bg-slate-700">03</button>
+      <div id="levelBar" class="flex items-center gap-1"></div>
     </div>
   </div>
+
+  <!-- Mission Log Sidebar -->
+  <div id="missionLogBackdrop" class="hidden absolute inset-0 z-40 bg-slate-950/60 backdrop-blur-sm"></div>
+  <aside id="missionLog" class="absolute top-0 left-0 bottom-0 z-50 w-80 max-w-[88vw] bg-slate-900/95 backdrop-blur-md border-r border-cyan-500/30 flex flex-col -translate-x-full transition-transform duration-300" aria-hidden="true">
+    <div class="flex items-center justify-between px-5 pt-5 pb-3 border-b border-slate-800">
+      <div>
+        <h2 class="text-sm font-orbitron font-black tracking-widest text-cyan-400">MISSION LOG</h2>
+        <p id="logSummary" class="text-[11px] font-mono-tech text-slate-400 mt-0.5">0 / 8 complete</p>
+      </div>
+      <button id="closeLogBtn" class="text-slate-400 hover:text-white text-lg font-bold px-2" title="Close">✕</button>
+    </div>
+    <div class="px-5 py-3 border-b border-slate-800">
+      <div class="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+        <div id="logProgressBar" class="h-full bg-gradient-to-r from-cyan-500 to-emerald-400 transition-all duration-300" style="width: 0%;"></div>
+      </div>
+      <p id="logStars" class="text-[11px] font-mono-tech text-amber-300 mt-1.5">★ 0 / 24</p>
+    </div>
+    <ol id="missionList" class="flex-1 overflow-y-auto px-3 py-3 space-y-2"></ol>
+    <div class="px-5 py-3 border-t border-slate-800">
+      <button id="resetProgressBtn" class="w-full py-2 rounded-lg border border-slate-700 text-[11px] font-mono-tech text-slate-400 hover:text-rose-300 hover:border-rose-500/50 transition">RESET PROGRESS</button>
+    </div>
+  </aside>
 
   <!-- Modal: Mission Complete / Debrief Screen -->
   <div id="victoryModal" class="hidden absolute inset-0 z-30 bg-slate-950/85 backdrop-blur-lg flex items-center justify-center p-4">
@@ -372,134 +394,203 @@
       fuelSpent: 0
     };
 
-    // --- LEVEL DEFINITIONS ---
+    // Level helpers: asteroids, and debris placed on a ring around a planet (world-fraction coords)
+    function rock(x, y, radius, name) {
+      return { x, y, radius, color: '#78716c', name };
+    }
+    function debrisRing(cx, cy, ringRadius, angles, radius, name) {
+      return angles.map((a, i) => Object.assign(rock(
+        cx + Math.cos(a) * ringRadius / WORLD_W,
+        cy + Math.sin(a) * ringRadius / WORLD_H,
+        radius, `${name} ${i + 1}`
+      ), { hideLabel: true })); // unlabeled so the ring stays readable
+    }
+
+    // --- LEVEL DEFINITIONS (ordered easiest -> hardest; each unlocks the next) ---
     const LEVELS = [
       {
-        id: 0,
         title: "MISSION 01: LUNAR SLINGSHOT",
-        subtitle: "Harness the Moon's gravity well to slingshot towards the Deep Space Beacon.",
-        hint: "Pull back from Earth. Bend your trajectory curve behind the Moon for a free gravity boost!",
+        subtitle: "Harness the Moon's gravity well to slingshot towards the Deep Space Relay.",
+        hint: "Pull back from Earth. Bend your trajectory curve around the Moon for a free gravity boost!",
         earth: { x: 0.16, y: 0.52, radius: 26, color: '#38bdf8', mass: 85, name: 'Earth' },
         bodies: [
-          {
-            name: "Moon",
-            x: 0.52,
-            y: 0.48,
-            radius: 14,
-            mass: 22,
-            color: '#cbd5e1',
-            glow: 'rgba(203, 213, 225, 0.4)',
-            orbitCenter: { x: 0.52, y: 0.52 },
-            orbitRadius: 28,
-            orbitSpeed: 0.008,
-            angle: 0
-          }
+          { name: "Moon", x: 0.52, y: 0.48, radius: 14, mass: 22, color: '#cbd5e1',
+            orbitCenter: { x: 0.52, y: 0.52 }, orbitRadius: 28, orbitSpeed: 0.008, angle: 0 }
         ],
-        target: {
-          name: "Deep Space Relay",
-          x: 0.88,
-          y: 0.28,
-          radius: 16,
-          captureRadius: 46,
-          color: '#34d399',
-          glow: 'rgba(52, 211, 153, 0.5)'
-        },
+        target: { name: "Deep Space Relay", x: 0.88, y: 0.28, radius: 16, captureRadius: 46, color: '#34d399' },
         beacons: [
-          { x: 0.42, y: 0.26, collected: false },
-          { x: 0.66, y: 0.38, collected: false },
-          { x: 0.82, y: 0.48, collected: false }
+          { x: 0.34, y: 0.418, collected: false },
+          { x: 0.519, y: 0.339, collected: false },
+          { x: 0.702, y: 0.309, collected: false }
         ],
         hazards: []
       },
       {
-        id: 1,
         title: "MISSION 02: MARS INSERTION",
-        subtitle: "Navigate the dense asteroid field and enter Mars' gravitational capture envelope.",
-        hint: "Thread the gap between dense asteroid clusters. Use delicate throttle control.",
+        subtitle: "Navigate the asteroid field and enter the Mars capture envelope.",
+        hint: "Thread the gap between the asteroid clusters. Use delicate throttle control.",
         earth: { x: 0.14, y: 0.72, radius: 26, color: '#38bdf8', mass: 85, name: 'Earth' },
         bodies: [
-          {
-            name: "Mars",
-            x: 0.82,
-            y: 0.32,
-            radius: 20,
-            mass: 42,
-            color: '#fb923c',
-            glow: 'rgba(251, 146, 60, 0.5)',
-            isCaptureDestination: true,
-            captureRadius: 52
-          }
+          { name: "Mars", x: 0.82, y: 0.32, radius: 20, mass: 42, color: '#fb923c' }
         ],
-        target: {
-          name: "Mars Orbital Station",
-          x: 0.82,
-          y: 0.32,
-          radius: 20,
-          captureRadius: 54,
-          color: '#fb923c',
-          glow: 'rgba(251, 146, 60, 0.6)'
-        },
+        target: { name: "Mars Orbital Station", x: 0.82, y: 0.32, radius: 20, captureRadius: 54, color: '#fb923c' },
         beacons: [
-          { x: 0.35, y: 0.52, collected: false },
-          { x: 0.56, y: 0.36, collected: false },
-          { x: 0.72, y: 0.62, collected: false }
+          { x: 0.291, y: 0.643, collected: false },
+          { x: 0.436, y: 0.568, collected: false },
+          { x: 0.599, y: 0.481, collected: false }
         ],
         hazards: [
-          { x: 0.46, y: 0.66, radius: 14, color: '#78716c', name: 'Debris A' },
-          { x: 0.49, y: 0.46, radius: 16, color: '#78716c', name: 'Debris B' },
-          { x: 0.54, y: 0.24, radius: 15, color: '#78716c', name: 'Debris C' },
-          { x: 0.68, y: 0.16, radius: 12, color: '#78716c', name: 'Asteroid Ceres' }
+          rock(0.46, 0.66, 14, 'Debris A'),
+          rock(0.49, 0.46, 16, 'Debris B'),
+          rock(0.54, 0.24, 15, 'Debris C'),
+          rock(0.68, 0.16, 12, 'Asteroid Ceres')
         ]
       },
       {
-        id: 2,
-        title: "MISSION 03: THE GRAND TOUR",
-        subtitle: "Double gravity assist: Slingshot between Jupiter & Ganymede to reach Europa.",
-        hint: "A massive gravity well will drastically curve your path. Master the dual Lagrange slingshot!",
-        earth: { x: 0.12, y: 0.5, radius: 25, color: '#38bdf8', mass: 80, name: 'Earth' },
+        title: "MISSION 03: VENUS SWING-BY",
+        subtitle: "Use Venus to bend a steep climb toward the Mercury transfer orbit.",
+        hint: "Venus is heavy. Skim past it to turn your path upward without spending extra fuel.",
+        earth: { x: 0.12, y: 0.76, radius: 26, color: '#38bdf8', mass: 85, name: 'Earth' },
         bodies: [
-          {
-            name: "Jupiter",
-            x: 0.48,
-            y: 0.5,
-            radius: 36,
-            mass: 145,
-            color: '#f59e0b',
-            glow: 'rgba(245, 158, 11, 0.45)',
-            orbitCenter: null
-          },
-          {
-            name: "Ganymede",
-            x: 0.48,
-            y: 0.22,
-            radius: 12,
-            mass: 20,
-            color: '#a78bfa',
-            glow: 'rgba(167, 139, 250, 0.4)',
-            orbitCenter: { x: 0.48, y: 0.5 },
-            orbitRadius: 105,
-            orbitSpeed: 0.012,
-            angle: 1.5
-          }
+          { name: "Venus", x: 0.44, y: 0.46, radius: 22, mass: 70, color: '#fcd34d' }
         ],
-        target: {
-          name: "Europa Research Base",
-          x: 0.88,
-          y: 0.5,
-          radius: 18,
-          captureRadius: 48,
-          color: '#2dd4bf',
-          glow: 'rgba(45, 212, 191, 0.55)'
-        },
+        target: { name: "Mercury Transfer Orbit", x: 0.86, y: 0.24, radius: 14, captureRadius: 44, color: '#34d399' },
         beacons: [
-          { x: 0.32, y: 0.28, collected: false },
-          { x: 0.48, y: 0.84, collected: false },
-          { x: 0.70, y: 0.32, collected: false },
-          { x: 0.76, y: 0.68, collected: false }
+          { x: 0.368, y: 0.746, collected: false },
+          { x: 0.572, y: 0.632, collected: false },
+          { x: 0.733, y: 0.436, collected: false }
         ],
         hazards: [
-          { x: 0.62, y: 0.48, radius: 11, color: '#78716c', name: 'Radiation Belt 1' },
-          { x: 0.34, y: 0.70, radius: 13, color: '#78716c', name: 'Space Junk' }
+          rock(0.28, 0.36, 14, 'Solar Debris'),
+          rock(0.62, 0.72, 14, 'Comet Fragment'),
+          rock(0.70, 0.44, 12, 'Debris Field')
+        ]
+      },
+      {
+        title: "MISSION 04: ASTEROID BELT RUN",
+        subtitle: "Thread a gap in the main belt, using Vesta and Ceres to steer.",
+        hint: "Find a gap in the belt. Vesta and Ceres can pull you through, or into the rocks.",
+        earth: { x: 0.10, y: 0.50, radius: 25, color: '#38bdf8', mass: 85, name: 'Earth' },
+        bodies: [
+          { name: "Vesta", x: 0.30, y: 0.24, radius: 15, mass: 40, color: '#a8a29e' },
+          { name: "Ceres", x: 0.70, y: 0.78, radius: 16, mass: 45, color: '#94a3b8' }
+        ],
+        target: { name: "Belt Outpost", x: 0.88, y: 0.40, radius: 15, captureRadius: 42, color: '#2dd4bf' },
+        beacons: [
+          { x: 0.282, y: 0.505, collected: false },
+          { x: 0.429, y: 0.473, collected: false },
+          { x: 0.574, y: 0.427, collected: false },
+          { x: 0.718, y: 0.391, collected: false }
+        ],
+        hazards: [
+          rock(0.49, 0.16, 14, 'Belt Rock 1'),
+          rock(0.52, 0.29, 15, 'Belt Rock 2'),
+          rock(0.48, 0.42, 13, 'Belt Rock 3'),
+          rock(0.51, 0.56, 16, 'Belt Rock 4'),
+          rock(0.50, 0.69, 14, 'Belt Rock 5'),
+          rock(0.53, 0.83, 13, 'Belt Rock 6')
+        ]
+      },
+      {
+        title: "MISSION 05: THE GRAND TOUR",
+        subtitle: "Double gravity assist: slingshot between Jupiter and Ganymede to reach Europa.",
+        hint: "A massive gravity well will sharply curve your path. Master the dual slingshot!",
+        earth: { x: 0.12, y: 0.5, radius: 25, color: '#38bdf8', mass: 80, name: 'Earth' },
+        bodies: [
+          { name: "Jupiter", x: 0.48, y: 0.5, radius: 36, mass: 145, color: '#f59e0b', texture: 'bands' },
+          { name: "Ganymede", x: 0.48, y: 0.22, radius: 12, mass: 20, color: '#a78bfa',
+            orbitCenter: { x: 0.48, y: 0.5 }, orbitRadius: 105, orbitSpeed: 0.012, angle: 1.5 }
+        ],
+        target: { name: "Europa Research Base", x: 0.88, y: 0.5, radius: 18, captureRadius: 46, color: '#2dd4bf' },
+        beacons: [
+          { x: 0.259, y: 0.716, collected: false },
+          { x: 0.42, y: 0.829, collected: false },
+          { x: 0.601, y: 0.806, collected: false },
+          { x: 0.746, y: 0.679, collected: false }
+        ],
+        hazards: [
+          rock(0.64, 0.46, 11, 'Radiation Belt'),
+          rock(0.34, 0.70, 13, 'Space Junk'),
+          rock(0.30, 0.30, 12, 'Trojan Asteroid')
+        ]
+      },
+      {
+        title: "MISSION 06: SATURN RING DIVE",
+        subtitle: "Dive past Saturn's ring debris while Titan and Enceladus tug at your path.",
+        hint: "Two moons orbit in opposite directions. Watch the preview and time your launch.",
+        earth: { x: 0.10, y: 0.80, radius: 25, color: '#38bdf8', mass: 85, name: 'Earth' },
+        bodies: [
+          { name: "Saturn", x: 0.50, y: 0.48, radius: 30, mass: 120, color: '#eab308', texture: 'bands', rings: true },
+          { name: "Titan", x: 0.50, y: 0.48, radius: 12, mass: 22, color: '#fb923c',
+            orbitCenter: { x: 0.50, y: 0.48 }, orbitRadius: 150, orbitSpeed: 0.009, angle: 3.6 },
+          { name: "Enceladus", x: 0.50, y: 0.48, radius: 8, mass: 8, color: '#e0f2fe',
+            orbitCenter: { x: 0.50, y: 0.48 }, orbitRadius: 78, orbitSpeed: -0.016, angle: 0.5 }
+        ],
+        target: { name: "Titan Relay Station", x: 0.88, y: 0.18, radius: 14, captureRadius: 40, color: '#34d399' },
+        beacons: [
+          { x: 0.202, y: 0.529, collected: false },
+          { x: 0.323, y: 0.306, collected: false },
+          { x: 0.502, y: 0.154, collected: false },
+          { x: 0.698, y: 0.14, collected: false }
+        ],
+        hazards: debrisRing(0.50, 0.48, 112, [0.4, 1.5, 2.6, 4.0, 5.3], 11, 'Ring Debris')
+      },
+      {
+        title: "MISSION 07: ICE GIANT RELAY",
+        subtitle: "Chain assists off Uranus and Neptune to reach the Kuiper Gateway.",
+        hint: "Two ice giants, one moving moon. Plan a double bend around the debris.",
+        earth: { x: 0.08, y: 0.24, radius: 24, color: '#38bdf8', mass: 85, name: 'Earth' },
+        bodies: [
+          { name: "Uranus", x: 0.36, y: 0.64, radius: 24, mass: 85, color: '#67e8f9', texture: 'bands' },
+          { name: "Neptune", x: 0.66, y: 0.34, radius: 24, mass: 90, color: '#3b82f6', texture: 'bands' },
+          { name: "Triton", x: 0.66, y: 0.34, radius: 9, mass: 10, color: '#cbd5e1',
+            orbitCenter: { x: 0.66, y: 0.34 }, orbitRadius: 62, orbitSpeed: 0.014, angle: 2.0 }
+        ],
+        target: { name: "Kuiper Gateway", x: 0.90, y: 0.78, radius: 14, captureRadius: 38, color: '#2dd4bf' },
+        beacons: [
+          { x: 0.228, y: 0.643, collected: false },
+          { x: 0.504, y: 0.38, collected: false },
+          { x: 0.788, y: 0.14, collected: false },
+          { x: 0.935, y: 0.332, collected: false },
+          { x: 0.96, y: 0.68, collected: false }
+        ],
+        hazards: [
+          rock(0.22, 0.46, 14, 'Centaur 1'),
+          rock(0.50, 0.20, 15, 'Centaur 2'),
+          rock(0.52, 0.52, 13, 'Centaur 3'),
+          rock(0.80, 0.60, 14, 'Centaur 4'),
+          rock(0.62, 0.80, 13, 'Centaur 5')
+        ]
+      },
+      {
+        title: "MISSION 08: HELIOPAUSE GAUNTLET",
+        subtitle: "Three giants, a moving moon and a crowded debris field guard the edge of the solar system.",
+        hint: "The final run. Every gravity well matters. Use the preview and trust the math.",
+        earth: { x: 0.07, y: 0.50, radius: 24, color: '#38bdf8', mass: 85, name: 'Earth' },
+        bodies: [
+          { name: "Saturn", x: 0.28, y: 0.26, radius: 26, mass: 100, color: '#eab308', texture: 'bands', rings: true },
+          { name: "Jupiter", x: 0.52, y: 0.68, radius: 34, mass: 110, color: '#f59e0b', texture: 'bands' },
+          { name: "Io", x: 0.52, y: 0.68, radius: 9, mass: 10, color: '#fde047',
+            orbitCenter: { x: 0.52, y: 0.68 }, orbitRadius: 85, orbitSpeed: 0.015, angle: 4.5 },
+          { name: "Neptune", x: 0.76, y: 0.30, radius: 22, mass: 80, color: '#3b82f6', texture: 'bands' }
+        ],
+        target: { name: "Heliopause Probe Dock", x: 0.93, y: 0.62, radius: 13, captureRadius: 36, color: '#34d399' },
+        beacons: [
+          { x: 0.249, y: 0.579, collected: false },
+          { x: 0.464, y: 0.489, collected: false },
+          { x: 0.7, y: 0.594, collected: false },
+          { x: 0.843, y: 0.697, collected: false },
+          { x: 0.92, y: 0.708, collected: false }
+        ],
+        hazards: [
+          rock(0.18, 0.72, 13, 'Kuiper Object 1'),
+          rock(0.38, 0.48, 14, 'Kuiper Object 2'),
+          rock(0.42, 0.16, 13, 'Kuiper Object 3'),
+          rock(0.63, 0.44, 14, 'Kuiper Object 4'),
+          rock(0.66, 0.15, 12, 'Kuiper Object 5'),
+          rock(0.88, 0.34, 13, 'Kuiper Object 6'),
+          rock(0.74, 0.84, 14, 'Kuiper Object 7'),
+          rock(0.30, 0.86, 12, 'Kuiper Object 8')
         ]
       }
     ];
@@ -734,39 +825,60 @@
 
       const shadowPlane = new THREE.Mesh(
         new THREE.PlaneGeometry(2600, 1800),
-        new THREE.ShadowMaterial({ opacity: 0.35 })
+        new THREE.ShadowMaterial({ opacity: 0.35, depthWrite: false }) // must not hide the star layers behind it
       );
       shadowPlane.position.z = -44;
       shadowPlane.receiveShadow = true;
       scene.add(shadowPlane);
 
-      // Starfield shell
-      const starCount = 3000;
-      const starPos = new Float32Array(starCount * 3);
-      const starCol = new Float32Array(starCount * 3);
-      const tints = [new THREE.Color('#ffffff'), new THREE.Color('#bae6fd'), new THREE.Color('#fde68a'), new THREE.Color('#e9d5ff')];
-      for (let i = 0; i < starCount; i++) {
-        const u = Math.random() * 2 - 1;
-        const th = Math.random() * Math.PI * 2;
-        const r = 5000 + Math.random() * 2500;
-        const s = Math.sqrt(1 - u * u);
-        starPos[i * 3] = r * s * Math.cos(th);
-        starPos[i * 3 + 1] = r * s * Math.sin(th);
-        starPos[i * 3 + 2] = r * u;
-        const t = tints[i % tints.length];
-        const b = 0.4 + Math.random() * 0.6;
-        starCol[i * 3] = t.r * b;
-        starCol[i * 3 + 1] = t.g * b;
-        starCol[i * 3 + 2] = t.b * b;
+      // Layered starfield: a far shell plus nearer slabs behind the orbital plane,
+      // so camera moves (CHASE / ISO) produce visible parallax depth
+      const tints = [new THREE.Color('#ffffff'), new THREE.Color('#bae6fd'), new THREE.Color('#fde68a'), new THREE.Color('#e9d5ff'), new THREE.Color('#fecaca')];
+      function addStarLayer(count, place, materialOpts, minB, maxB) {
+        const pos = new Float32Array(count * 3);
+        const col = new Float32Array(count * 3);
+        const v = new THREE.Vector3();
+        for (let i = 0; i < count; i++) {
+          place(v);
+          pos[i * 3] = v.x; pos[i * 3 + 1] = v.y; pos[i * 3 + 2] = v.z;
+          const t = tints[i % tints.length];
+          const b = minB + Math.random() * (maxB - minB);
+          col[i * 3] = t.r * b; col[i * 3 + 1] = t.g * b; col[i * 3 + 2] = t.b * b;
+        }
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+        geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+        const pts = new THREE.Points(geo, new THREE.PointsMaterial(Object.assign({
+          vertexColors: true, depthWrite: false, transparent: true
+        }, materialOpts)));
+        pts.frustumCulled = false;
+        scene.add(pts);
       }
-      const starGeo = new THREE.BufferGeometry();
-      starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
-      starGeo.setAttribute('color', new THREE.BufferAttribute(starCol, 3));
-      const starfield = new THREE.Points(starGeo, new THREE.PointsMaterial({
-        size: 2.2, sizeAttenuation: false, vertexColors: true, fog: false, depthWrite: false
-      }));
-      starfield.name = 'starfield';
-      scene.add(starfield);
+      const slab = (spreadX, spreadY, zNear, zFar) => v => v.set(
+        (Math.random() * 2 - 1) * spreadX,
+        (Math.random() * 2 - 1) * spreadY,
+        -(zNear + Math.random() * (zFar - zNear))
+      );
+      // Far shell surrounding everything
+      addStarLayer(6000, v => {
+        const u = Math.random() * 2 - 1, th = Math.random() * Math.PI * 2, r = 5000 + Math.random() * 2500;
+        const s = Math.sqrt(1 - u * u);
+        v.set(r * s * Math.cos(th), r * s * Math.sin(th), r * u);
+      }, { size: 1.8, sizeAttenuation: false, fog: false }, 0.35, 1.0);
+      // Deep field: thousands of stars at varied distances behind the plane
+      addStarLayer(5000, slab(3400, 2400, 400, 3400), { size: 11, map: glowTexture, blending: THREE.AdditiveBlending }, 0.45, 1.0);
+      // Mid field
+      addStarLayer(2500, slab(2200, 1500, 150, 600), { size: 6, map: glowTexture, blending: THREE.AdditiveBlending }, 0.3, 0.8);
+      // Near dust just under the plane: faint, drifts fastest when the camera moves
+      addStarLayer(1200, slab(1500, 1000, 60, 160), { size: 3.5, map: glowTexture, blending: THREE.AdditiveBlending }, 0.15, 0.45);
+
+      // Faint nebula clouds far behind for colour depth
+      const nebulaColors = ['#7c3aed', '#0e7490', '#be185d', '#1d4ed8', '#0f766e'];
+      nebulaColors.forEach((c, i) => {
+        const neb = makeGlowSprite(c, 2200 + Math.random() * 1600, 0.09);
+        neb.position.set((Math.random() * 2 - 1) * 2600, (Math.random() * 2 - 1) * 1700, -2600 - i * 300);
+        scene.add(neb);
+      });
 
       levelGroup = new THREE.Group();
       scene.add(levelGroup);
@@ -878,9 +990,20 @@
       // Celestial bodies with gravity well contours and orbit tracks
       lvl.bodies.forEach(b => {
         const group = new THREE.Group();
-        const kind = b.name === 'Jupiter' ? 'bands' : 'rocky';
-        const mesh = makePlanetMesh(b, kind);
+        const mesh = makePlanetMesh(b, b.texture || 'rocky');
         group.add(mesh);
+        if (b.rings) {
+          const ring = new THREE.Mesh(
+            new THREE.RingGeometry(b.radius * 1.35, b.radius * 2.1, 64),
+            new THREE.MeshStandardMaterial({
+              color: new THREE.Color(b.color).lerp(new THREE.Color('#fef3c7'), 0.5),
+              transparent: true, opacity: 0.55, side: THREE.DoubleSide, roughness: 0.9, depthWrite: false
+            })
+          );
+          ring.rotation.x = 0.45; // tilted so the 3D views show it as an ellipse
+          ring.castShadow = true;
+          group.add(ring);
+        }
         group.add(makeGlowSprite(b.color, b.radius * 3.2, 0.5));
         for (let ring = 1; ring <= 3; ring++) {
           group.add(makeCircleLine(b.radius + ring * 28, 0x38bdf8, 0.32 / ring, true));
@@ -946,9 +1069,11 @@
         mesh.position.copy(toScene(p.x, p.y));
         levelGroup.add(mesh);
 
-        const label = makeLabel(hz.name, '#a8a29e', 9);
-        label.position.copy(toScene(p.x, p.y + hz.radius + 12));
-        levelGroup.add(label);
+        if (!hz.hideLabel) {
+          const label = makeLabel(hz.name, '#a8a29e', 9);
+          label.position.copy(toScene(p.x, p.y + hz.radius + 12));
+          levelGroup.add(label);
+        }
         levelObjects.hazards.push({ mesh, spin: 0.2 + Math.random() * 0.5 });
       });
 
@@ -971,25 +1096,140 @@
       });
     }
 
+    // --- CAMPAIGN PROGRESS (unlocks + best stars, kept in this browser) ---
+    const PROGRESS_KEY = 'lagrangeHop.progress.v1';
+    let progress = { unlocked: 0, best: LEVELS.map(() => 0) };
+
+    function loadProgress() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(PROGRESS_KEY));
+        if (saved && Array.isArray(saved.best)) {
+          progress.unlocked = Math.min(Math.max(0, saved.unlocked | 0), LEVELS.length - 1);
+          progress.best = LEVELS.map((_, i) => saved.best[i] | 0);
+        }
+      } catch (e) { /* storage unavailable: play without saving */ }
+    }
+
+    function saveProgress() {
+      try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress)); } catch (e) { /* ignore */ }
+    }
+
+    function isUnlocked(idx) {
+      return idx <= progress.unlocked;
+    }
+
+    function recordCompletion(stars) {
+      progress.best[currentLevelIndex] = Math.max(progress.best[currentLevelIndex], stars);
+      if (currentLevelIndex + 1 < LEVELS.length) {
+        progress.unlocked = Math.max(progress.unlocked, currentLevelIndex + 1);
+      }
+      saveProgress();
+      renderLevelBar();
+      renderMissionLog();
+    }
+
+    function missionName(lvl) {
+      return lvl.title.replace(/^MISSION \d+:\s*/, '');
+    }
+
+    function starString(n) {
+      return '★'.repeat(n) + '☆'.repeat(3 - n);
+    }
+
+    function renderLevelBar() {
+      const bar = document.getElementById('levelBar');
+      bar.innerHTML = '';
+      LEVELS.forEach((lvl, i) => {
+        const btn = document.createElement('button');
+        const unlocked = isUnlocked(i);
+        const done = progress.best[i] > 0;
+        let cls = 'w-8 py-1 rounded-lg text-[11px] font-orbitron font-bold transition ';
+        if (i === currentLevelIndex) cls += 'bg-cyan-400 text-slate-950 shadow-md';
+        else if (!unlocked) cls += 'bg-slate-900 text-slate-600 cursor-not-allowed';
+        else if (done) cls += 'bg-emerald-900/70 text-emerald-300 hover:bg-emerald-800';
+        else cls += 'bg-slate-800 text-slate-300 hover:bg-slate-700';
+        btn.className = cls;
+        btn.textContent = unlocked ? String(i + 1).padStart(2, '0') : '🔒';
+        btn.title = unlocked ? missionName(lvl) : `Locked: complete mission ${String(i).padStart(2, '0')} first`;
+        btn.disabled = !unlocked;
+        btn.addEventListener('click', () => { sfx.init(); loadLevel(i); });
+        bar.appendChild(btn);
+      });
+    }
+
+    function renderMissionLog() {
+      const list = document.getElementById('missionList');
+      list.innerHTML = '';
+      const completed = progress.best.filter(s => s > 0).length;
+      const totalStars = progress.best.reduce((a, b) => a + b, 0);
+      document.getElementById('logSummary').textContent = `${completed} / ${LEVELS.length} missions complete`;
+      document.getElementById('logStars').textContent = `★ ${totalStars} / ${LEVELS.length * 3} stars`;
+      document.getElementById('logProgressBar').style.width = `${(completed / LEVELS.length) * 100}%`;
+
+      LEVELS.forEach((lvl, i) => {
+        const unlocked = isUnlocked(i);
+        const stars = progress.best[i];
+        const current = i === currentLevelIndex;
+        let status, statusCls, border;
+        if (!unlocked) {
+          status = '🔒 LOCKED'; statusCls = 'text-slate-500'; border = 'border-slate-800 opacity-60';
+        } else if (stars > 0) {
+          status = 'COMPLETE'; statusCls = 'text-emerald-400'; border = 'border-emerald-500/40 hover:border-emerald-400';
+        } else {
+          status = 'READY'; statusCls = 'text-cyan-300'; border = 'border-cyan-500/40 hover:border-cyan-300';
+        }
+        if (current) border += ' ring-1 ring-cyan-400 bg-cyan-950/40';
+
+        const li = document.createElement('li');
+        li.innerHTML = `
+          <button class="w-full text-left p-3 rounded-xl border bg-slate-950/60 transition ${border} ${unlocked ? '' : 'cursor-not-allowed'}" ${unlocked ? '' : 'disabled'}>
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-[10px] font-orbitron font-bold text-slate-500">MISSION ${String(i + 1).padStart(2, '0')}${current ? ' · NOW PLAYING' : ''}</span>
+              <span class="text-[10px] font-mono-tech ${statusCls}">${status}</span>
+            </div>
+            <div class="font-orbitron font-bold text-xs text-white mt-1">${missionName(lvl)}</div>
+            <div class="text-[11px] font-mono-tech text-slate-400 mt-1 leading-snug">${unlocked ? lvl.subtitle : `Complete mission ${String(i).padStart(2, '0')} to unlock.`}</div>
+            <div class="text-sm mt-1 ${stars > 0 ? 'text-amber-400' : 'text-slate-700'}">${starString(stars)}</div>
+          </button>`;
+        if (unlocked) {
+          li.querySelector('button').addEventListener('click', () => {
+            sfx.init();
+            loadLevel(i);
+            closeMissionLog();
+          });
+        }
+        list.appendChild(li);
+      });
+    }
+
+    function openMissionLog() {
+      renderMissionLog();
+      document.getElementById('missionLog').classList.remove('-translate-x-full');
+      document.getElementById('missionLog').setAttribute('aria-hidden', 'false');
+      document.getElementById('missionLogBackdrop').classList.remove('hidden');
+    }
+
+    function closeMissionLog() {
+      document.getElementById('missionLog').classList.add('-translate-x-full');
+      document.getElementById('missionLog').setAttribute('aria-hidden', 'true');
+      document.getElementById('missionLogBackdrop').classList.add('hidden');
+    }
+
     // --- INITIALIZATION ---
     function loadLevel(idx) {
-      currentLevelIndex = (idx + LEVELS.length) % LEVELS.length;
+      idx = Math.min(Math.max(0, idx), LEVELS.length - 1);
+      if (!isUnlocked(idx)) return;
+      currentLevelIndex = idx;
       const rawLvl = LEVELS[currentLevelIndex];
       // Clone deeply to allow modifications (e.g. collected beacons, dynamic orbits)
       currentLevel = JSON.parse(JSON.stringify(rawLvl));
 
       document.getElementById('levelTitle').textContent = currentLevel.title;
+      document.getElementById('missionCounter').textContent = `${currentLevelIndex + 1} / ${LEVELS.length}`;
       document.getElementById('hintText').textContent = currentLevel.hint;
 
-      // Update level button styles
-      document.querySelectorAll('.lvl-btn').forEach((btn, i) => {
-        if (i === currentLevelIndex) {
-          btn.className = 'lvl-btn px-3 py-1 rounded-lg text-xs font-orbitron font-bold bg-cyan-400 text-slate-950 shadow-md';
-        } else {
-          btn.className = 'lvl-btn px-3 py-1 rounded-lg text-xs font-orbitron font-bold bg-slate-800 text-slate-300 hover:bg-slate-700';
-        }
-      });
-
+      renderLevelBar();
+      renderMissionLog();
       buildLevelScene();
       resetProbeToEarth();
       document.getElementById('victoryModal').classList.add('hidden');
@@ -1319,9 +1559,20 @@
       const totalBeacons = currentLevel.beacons.length;
       const fuelRemainingPct = Math.max(0, Math.round(100 - (launchDeltaVUsed / MAX_DELTA_V) * 100));
 
+      // 1 star: capture. 2 stars: at least half the beacons. 3 stars: every beacon.
       let starsCount = 1;
-      if (fuelRemainingPct >= 40 && beaconsCollected >= 1) starsCount = 2;
-      if (fuelRemainingPct >= 65 && beaconsCollected === totalBeacons) starsCount = 3;
+      if (beaconsCollected >= Math.ceil(totalBeacons / 2)) starsCount = 2;
+      if (beaconsCollected === totalBeacons) starsCount = 3;
+
+      const wasUnlocked = progress.unlocked;
+      recordCompletion(starsCount);
+      const isLast = currentLevelIndex === LEVELS.length - 1;
+      const nextBtn = document.getElementById('modalNextBtn');
+      nextBtn.textContent = isLast ? 'MISSION LOG' : 'NEXT MISSION';
+      let desc = 'Telemetry confirms safe insertion into target orbital capture envelope.';
+      if (isLast) desc = 'All 8 missions complete. You reached the edge of the solar system!';
+      else if (progress.unlocked > wasUnlocked) desc += ` Mission ${String(currentLevelIndex + 2).padStart(2, '0')} unlocked.`;
+      document.getElementById('victoryDesc').textContent = desc;
 
       document.getElementById('metricTime').textContent = `${flightTimer.toFixed(1)}s`;
       document.getElementById('metricFuel').textContent = `${fuelRemainingPct}% fuel left`;
@@ -1667,12 +1918,32 @@
       document.getElementById('hintText').textContent = currentLevel.hint;
     });
 
-    document.querySelectorAll('.lvl-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        sfx.init();
-        const lvl = parseInt(e.target.getAttribute('data-level'), 10);
-        loadLevel(lvl);
-      });
+    // Mission log sidebar
+    document.getElementById('btnMissionLog').addEventListener('click', () => {
+      sfx.init();
+      openMissionLog();
+    });
+    document.getElementById('closeLogBtn').addEventListener('click', closeMissionLog);
+    document.getElementById('missionLogBackdrop').addEventListener('click', closeMissionLog);
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeMissionLog();
+    });
+
+    // Two-step reset so a single misclick can't wipe progress
+    const resetBtn = document.getElementById('resetProgressBtn');
+    let resetArmed = false;
+    resetBtn.addEventListener('click', () => {
+      if (!resetArmed) {
+        resetArmed = true;
+        resetBtn.textContent = 'CLICK AGAIN TO ERASE ALL PROGRESS';
+        setTimeout(() => { resetArmed = false; resetBtn.textContent = 'RESET PROGRESS'; }, 3000);
+        return;
+      }
+      resetArmed = false;
+      resetBtn.textContent = 'RESET PROGRESS';
+      progress = { unlocked: 0, best: LEVELS.map(() => 0) };
+      saveProgress();
+      loadLevel(0);
     });
 
     document.getElementById('modalRetryBtn').addEventListener('click', () => {
@@ -1681,7 +1952,12 @@
     });
 
     document.getElementById('modalNextBtn').addEventListener('click', () => {
-      loadLevel(currentLevelIndex + 1);
+      if (currentLevelIndex === LEVELS.length - 1) {
+        document.getElementById('victoryModal').classList.add('hidden');
+        openMissionLog();
+      } else {
+        loadLevel(currentLevelIndex + 1);
+      }
     });
 
     // Manual Modal controls
@@ -1719,7 +1995,8 @@
     // Initialize Game on Load
     window.onload = function () {
       initScene();
-      loadLevel(0);
+      loadProgress();
+      loadLevel(progress.unlocked); // resume at the furthest unlocked mission
       requestAnimationFrame(gameLoop);
     };
   </script>
