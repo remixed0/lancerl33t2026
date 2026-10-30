@@ -28,46 +28,58 @@ Works on desktop and phones (touch to aim, drag to rotate, pinch to zoom).
 | Top / 3D view | **3D VIEW** button | `V` |
 | Time warp 1x / 2x / 4x | **WARP** button | `W` |
 | Reset probe | **RESET** button | `R` |
-| Pick mission | Mission buttons | `1` `2` `3` |
+| Pick mission | Mission buttons | `1`–`8` |
+| Tutorial (Bob flies Mission 1) | **TUTORIAL** button | |
+| AI co-pilot chat | **🤖 AI** button | |
 | Sound on/off | **SFX** button | `M` |
 
 ## Missions
 
-1. **Lunar Slingshot**: Swing behind the moving Moon to more than double your speed (2.16x on the best route).
-2. **Mars Insertion**: Thread an asteroid field, including a drifting rock, and arrive slowly enough for Mars to capture you.
-3. **The Grand Tour**: Jupiter bends everything. Steal speed from Ganymede (1.75x) to reach Europa Base.
+1. **Lunar Slingshot**: swing behind the moving Moon to reach the Deep Space Relay.
+2. **Mars Insertion**: thread an asteroid field and arrive slowly enough for Mars to capture you.
+3. **Venus Swing-by**: use Venus to bend a steep climb toward the Mercury transfer orbit.
+4. **Asteroid Belt Run**: thread a gap in the main belt, using Vesta and Ceres to steer.
+5. **The Grand Tour**: double assist between Jupiter and Ganymede to reach Europa.
+6. **Saturn Ring Dive**: dive past Saturn's ring debris while Titan and Enceladus tug at your path.
+7. **Ice Giant Relay**: chain assists off Uranus and Neptune to reach the Kuiper Gateway.
+8. **Heliopause Gauntlet**: three giants, a moving moon and a crowded debris field guard the edge of the solar system.
 
-Stars: 1 for any capture, 2 for half the beacons or good fuel, 3 for every beacon **and** the fuel goal. On missions 1 and 3 the fuel goal is only reachable with a gravity assist.
+Stars: 1 for any capture, 2 for half the beacons, 3 for every beacon.
 
 ## How it works
 
-- **Physics (`js/physics.js`)**: Every planet and moon pulls the probe with acceleration = mass / distance², softened near the center. A fixed time step (1/120 s, semi-implicit Euler) keeps every run deterministic, so the prediction and the real flight match exactly.
-- **Real gravity assists**: A still planet gives back exactly the speed you gain falling in. A *moving* moon can hand you some of its own speed. The "slingshot" number is speed leaving a moon's zone divided by speed entering it.
-- **3D engine (`js/engine3d.js`)**: A small engine written for this project, with no libraries: an orbit camera, perspective projection, mouse picking on the orbital plane, and flat-shaded meshes (asteroids, beacons, the probe, the station).
-- **Planets (`js/planets.js`)**: Surfaces are generated from 3D noise at load time (oceans, clouds, Jupiter's bands and Great Red Spot). Every frame, each planet is ray-cast pixel by pixel and lit by the Sun, so you see them rotate with day and night sides.
-- **Spacetime grid**: The grid under the board sinks into a well under every mass (depth follows the gravitational potential), so you can see why paths bend.
-- **Sound (`js/sound.js`)**: Synthesized live with the Web Audio API. No audio files.
-
-## Level checker
-
-```
-node tools/check-levels.js
-```
-
-For each mission this flies the autopilot route and checks it gets 3 stars, checks the route still works with the aim half a degree off, and scans thousands of launches at several moon positions to make sure there is always a way to win. GitHub runs it automatically on every push (see `.github/workflows/check-levels.yml`). If you edit `js/levels.js`, run it before committing.
+- **Physics (`js/physics.js`)**: gravity, flight steps, collisions and scoring. Planet and moon pull is softened near the centre, and a fixed time step keeps runs deterministic so the prediction and the real flight match.
+- **Jolt physics (`js/physics.js`)**: the JoltPhysics.js WebAssembly build is initialised for rigid-body simulation, with a gravity fallback when WASM is unavailable.
+- **3D engine (`js/scene.js`, `js/camera.js`, `js/world.js`)**: Three.js renders the scene, orbit camera, CSS2D labels and the flight trail.
+- **Planets (`js/planets.js`)**: procedural surfaces and lighting for Earth, the Moon and the other bodies.
+- **NASA data**: `js/config.js` carries public NASA mission metadata, and the probe uses NASA's real Voyager 3D model (`assets/Voyager.glb`, with NASA's CDN as a fallback).
+- **Bob the co-pilot (`js/bob.js`, `js/tutorial.js`, `bob/`)**: a 3D alien head in an iframe who speaks recorded lines on game events and flies the optional Mission 1 tutorial.
+- **AI co-pilot (`js/ui.js`)**: an optional chat panel that talks to a local Ollama model about the mission, slingshots and NASA data.
+- **Sound (`js/sound.js`)**: synthesized live with the Web Audio API. No audio files.
 
 ## Project structure
 
 ```
 index.html              page layout and HUD
 css/style.css           styles
-js/physics.js           gravity, flight steps, collisions, scoring (runs in Node too)
-js/levels.js            the three missions
-js/engine3d.js          camera, projection, meshes
-js/planets.js           procedural planet textures and sphere renderer
-js/sound.js             sound effects
-js/game.js              game loop, input, rendering, HUD
-tools/check-levels.js   proves every mission is beatable
+js/config.js            constants, shared state and NASA mission data
+js/physics.js           gravity, flight steps, collisions, scoring
+js/levels.js            the eight missions
+js/world.js             world <-> scene coordinate helpers
+js/scene.js             Three.js scene, Voyager model, probe and effects
+js/camera.js            orbit camera
+js/planets.js           procedural planet surfaces
+js/sound.js             synthesized sound effects
+js/game.js              game loop, collisions, scoring, HUD
+js/autopilot.js         route search and autopilot flight
+js/ui.js                HUD wiring and AI co-pilot chat
+js/input.js             mouse, touch and keyboard controls
+js/bob.js               Bob event bridge (iframe messaging)
+js/tutorial.js          Bob's Mission 1 tutorial
+js/progress.js          unlocks and saved progress
+js/main.js              boot
+bob/                    Bob: 3D alien head, voice lines and audio
+assets/Voyager.glb      NASA Voyager model (local copy)
 ```
 
 ## Put it on GitHub

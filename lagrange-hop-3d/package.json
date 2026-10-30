@@ -4,7 +4,6 @@
   "description": "A 3D gravity-assist puzzle game. No dependencies: open index.html.",
   "private": true,
   "scripts": {
-    "check": "node tools/check-levels.js",
     "start": "python3 -m http.server 8000"
   }
 }

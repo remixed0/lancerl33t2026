@@ -15,7 +15,7 @@ function screenToWorld(clientX, clientY) {
 
 function handlePointerDown(clientX, clientY) {
   sfx.init();
-  if (gameState !== 'AIMING') return;
+  if (gameState !== 'AIMING' || tutorial.active) return; // Bob is flying during the tutorial
 
   const w = screenToWorld(clientX, clientY);
   if (!w) return;
@@ -68,6 +68,13 @@ window.addEventListener('touchend', handlePointerUp);
 
 window.addEventListener('keydown', (e) => {
   const k = e.key;
+  // During the tutorial Bob is flying: only Esc (skip), C (camera) and L (labels) work
+  if (tutorial.active) {
+    if (k === 'Escape') tutorial.skip();
+    else if (k === 'c' || k === 'C') cycleCamera();
+    else if (k === 'l' || k === 'L') document.body.classList.toggle('show-labels');
+    return;
+  }
   // A focused slider already handles arrows itself, and a focused button handles Space/Enter
   const tag = e.target.tagName;
   if (tag === 'INPUT' && k.startsWith('Arrow')) return;

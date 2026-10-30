@@ -264,6 +264,7 @@ btnAudio.addEventListener('click', () => {
   sfx.enabled = !sfx.enabled;
   audioLabel.textContent = sfx.enabled ? 'SFX ON' : 'SFX OFF';
   btnAudio.classList.toggle('text-slate-500', !sfx.enabled);
+  bob.mute(!sfx.enabled); // the sound toggle mutes Bob's voice too
 });
 
 // Handle Window Resize
