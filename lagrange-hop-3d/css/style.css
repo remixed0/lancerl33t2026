@@ -1,0 +1,85 @@
+/* Lagrange Hop 3D: page and HUD styles (layout utilities come from Tailwind) */
+
+body {
+  font-family: 'Inter', sans-serif;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  background-color: #030712;
+  overflow: hidden;
+}
+.font-mono-tech {
+  font-family: 'Share Tech Mono', monospace;
+}
+.font-orbitron {
+  font-family: 'Orbitron', sans-serif;
+}
+/* Glow utilities */
+.glow-cyan {
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.45);
+}
+.glow-amber {
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.45);
+}
+.glow-text-cyan {
+  text-shadow: 0 0 10px rgba(6, 182, 212, 0.7);
+}
+.glow-text-emerald {
+  text-shadow: 0 0 10px rgba(16, 185, 129, 0.7);
+}
+canvas#gameCanvas {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+}
+/* Aim bar buttons */
+.aim-btn {
+  font-size: 11px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid #334155;
+  background: rgba(15, 23, 42, 0.85);
+  color: #cbd5e1;
+  transition: all 0.15s;
+}
+.aim-btn:hover { color: #fff; border-color: #64748b; }
+.aim-btn.active { border-color: #22d3ee; color: #22d3ee; background: rgba(8, 51, 68, 0.85); }
+.aim-btn.auto-active { border-color: #a78bfa; color: #c4b5fd; background: rgba(46, 16, 101, 0.7); }
+.launch-btn {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  padding: 5px 14px;
+  border-radius: 8px;
+  color: #021018;
+  background: linear-gradient(90deg, #22d3ee, #34d399);
+  transition: all 0.15s;
+}
+.launch-btn:hover:not(:disabled) { background: linear-gradient(90deg, #67e8f9, #6ee7b7); }
+.launch-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.launch-btn.pulse { animation: launchPulse 1.2s infinite; }
+@keyframes launchPulse { 50% { box-shadow: 0 0 18px rgba(52, 211, 153, 0.8); } }
+.predict-good { color: #34d399 !important; }
+.predict-bad { color: #fb7185 !important; }
+.predict-auto { color: #c4b5fd !important; }
+
+body:not(.show-labels) .object-label { display: none; }
+
+/* Precision sliders */
+.aim-slider { -webkit-appearance: none; appearance: none; height: 4px; border-radius: 4px; background: #1e293b; outline: none; }
+.aim-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #22d3ee; box-shadow: 0 0 8px rgba(34, 211, 238, 0.8); cursor: pointer; }
+.aim-slider::-moz-range-thumb { width: 14px; height: 14px; border: none; border-radius: 50%; background: #22d3ee; box-shadow: 0 0 8px rgba(34, 211, 238, 0.8); cursor: pointer; }
+.aim-slider.dv::-webkit-slider-thumb { background: #34d399; box-shadow: 0 0 8px rgba(52, 211, 153, 0.8); }
+.aim-slider.dv::-moz-range-thumb { background: #34d399; box-shadow: 0 0 8px rgba(52, 211, 153, 0.8); }
+.step-btn { width: 22px; height: 20px; border-radius: 6px; border: 1px solid #334155; color: #94a3b8; font-size: 11px; line-height: 1; background: rgba(15, 23, 42, 0.85); }
+.step-btn:hover { color: #fff; border-color: #64748b; }
+
+/* In-scene labels rendered by CSS2DRenderer */
+.scene-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: #e2e8f0;
+  white-space: nowrap;
+  pointer-events: none;
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.95);
+}
