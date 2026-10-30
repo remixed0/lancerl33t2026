@@ -46,11 +46,12 @@
     const w = window.innerWidth, h = window.innerHeight;
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
-    // Fit about 4.6 units of height, or 3.8 of width on narrow screens
+    // Fit about 5.4 units of height, or 3.8 of width on narrow screens,
+    // aimed low so the head sits above the controls at the bottom
     const half = Math.tan((camera.fov * Math.PI) / 360);
-    const dist = Math.max(2.3 / half, 1.9 / (half * camera.aspect));
-    camera.position.set(0, 0.2, dist);
-    camera.lookAt(0, 0.25, 0);
+    const dist = Math.max(2.7 / half, 1.9 / (half * camera.aspect));
+    camera.position.set(0, -0.2, dist);
+    camera.lookAt(0, -0.45, 0);
     camera.updateProjectionMatrix();
   }
   window.addEventListener('resize', resize);
@@ -223,6 +224,168 @@
   $('previewBtn').addEventListener('click', () => { preview = !preview; save('alienPreview', preview); renderButtons(); });
   renderButtons();
 
+  // ---------- Voice ----------
+  const voice = window.AlienVoice;
+  const vs = voice.settings;
+  const LINES = {
+    greet: ["Greetings, Earthling! Make a face and I'll copy it.", 'Oh, hello there! I can see you now. Let us make faces together!'],
+    happy: ["Ooh, a smile! Earthlings are adorable when they're happy.", 'That smile could power a whole starship!', 'Happy face detected. My antennae are glowing!'],
+    surprised: ['Whoa! What did you see? A comet?', "Surprised? Me too. I'm always surprised.", 'Eyebrows up, mouth open. Classic Earthling shock!'],
+    angry: ['Uh oh, grumpy face. Did someone steal your space snacks?', 'Easy there, Earthling. Deep breaths.', 'Such a fierce frown! I am trembling in my antennae.'],
+    sad: ["Aww, don't be sad. Want to see my antennae wiggle?", 'Sad face detected. Sending you a cosmic hug!'],
+    kissy: ['Mwah! Right back at you, Earthling.', 'Kissy face! On my planet that means hello.'],
+    wink: ['Did you just wink at me? Smooth.', 'Wink detected. Your secret is safe with me.'],
+    puffed: ['Puffy cheeks! Are you holding your breath in space?', 'You look like a pufferfish from planet Earth!']
+  };
+  // The warrior sprinkles in a little Klingon: nuqneH ("what do you want?", the
+  // usual greeting) and Qapla' ("success!").
+  const WARRIOR_LINES = {
+    greet: ['nuqneH! I see you, Earthling. Show me your warrior face!', 'Greetings, Earthling. Today is a glorious day to make faces!'],
+    happy: ["Qapla'! Your smile brings honor to your house!", "A warrior's grin! Glorious!"],
+    surprised: ['You look startled, Earthling. A warrior fears nothing!', 'What is it? An enemy ship? Raise the shields!'],
+    angry: ['Yes! That is the face of a true warrior!', "Magnificent fury! Qapla'!"],
+    sad: ['Do not weep, Earthling. Sing a battle song instead!', 'Even the mightiest warrior has dark days. Rise again!'],
+    kissy: ['Hah! Even warriors need love.', 'A kiss before battle? Bold!'],
+    wink: ['A wink? Cunning, like a true strategist.', 'I see your secret plan, Earthling.'],
+    puffed: ['You fill your lungs for a battle cry! Let it out!', 'Puffed up like a warrior ready to charge!']
+  };
+  const TEST_LINES = {
+    squeaky: 'Greetings, Earthling! This is my voice. Do you like it?',
+    warrior: "nuqneH! I am the alien warrior. Today we make faces with honor. Qapla'!",
+    robot: 'Beep boop. Greetings, Earthling. Facial scan complete.',
+    custom: 'Greetings, Earthling! This is my voice. Do you like it?'
+  };
+  // Character presets: voice names to look for (best first), pitch, speed and effect
+  const PRESETS = {
+    squeaky: { find: ['jessica', 'lily', 'laura', 'alice'], pitch: 1.5, speed: 1.0, effect: 'none' },
+    warrior: { find: ['fierce warrior', 'harry', 'callum', 'george', 'roger', 'charlie'], pitch: 0.7, speed: 0.95, effect: 'growl' },
+    robot: { find: ['river', 'will', 'liam', 'brian', 'eric'], pitch: 0.95, speed: 0.95, effect: 'robot' }
+  };
+  const lines = () => (vs.preset === 'warrior' ? WARRIOR_LINES : LINES);
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  let greeted = false;
+  let reactMood = 'neutral';
+  let reactSince = 0;
+  let lastReactAt = -100;
+
+  // Say something about a new expression once it has been held for a moment.
+  function maybeReact(m, time, seeing) {
+    if (!seeing || !vs.enabled) return;
+    if (!greeted) { greeted = true; lastReactAt = time; voice.speak(pick(lines().greet)); return; }
+    if (m !== reactMood) { reactMood = m; reactSince = time; return; }
+    if (!vs.reactions || m === 'neutral' || voice.speaking()) return;
+    if (time - reactSince > 0.8 && time - lastReactAt > 7) {
+      lastReactAt = time;
+      reactSince = Infinity; // once per held expression
+      voice.speak(pick(lines()[m]));
+    }
+  }
+
+  function renderVoice() {
+    $('muteBtn').textContent = vs.enabled ? '🔊 Voice: on' : '🔇 Voice: off';
+    $('vOn').checked = vs.enabled;
+    $('vReact').checked = vs.reactions;
+    $('vEngine').value = vs.engine;
+    $('vPreset').value = vs.preset;
+    $('vEffect').value = vs.effect;
+    $('vPitch').value = vs.pitch;
+    $('vSpeed').value = vs.speed;
+    $('vVol').value = vs.volume;
+    $('vPitchOut').textContent = vs.pitch.toFixed(2) + 'x';
+    $('vSpeedOut').textContent = vs.speed.toFixed(2) + 'x';
+    $('vVolOut').textContent = Math.round(vs.volume * 100) + '%';
+    const eleven = vs.engine === 'eleven';
+    $('vKeyRow').classList.toggle('hidden', !eleven);
+    $('vVoiceRow').classList.toggle('hidden', !eleven);
+  }
+  function setVoice(changes) {
+    Object.assign(vs, changes);
+    voice.save();
+    renderVoice();
+  }
+
+  async function loadVoices() {
+    const sel = $('vVoice');
+    if (!vs.apiKey) { sel.innerHTML = '<option value="">Add a key to load voices</option>'; return; }
+    $('vStatus').textContent = 'Key saved. Loading your ElevenLabs voices…';
+    let list;
+    try {
+      list = await voice.listVoices();
+      $('vStatus').textContent = 'Key works! ' + list.length + ' voices loaded. Press Test voice.';
+    } catch (e) {
+      // A key without "Voices: read" can still speak with ElevenLabs' standard voices
+      list = voice.STANDARD_VOICES;
+      $('vStatus').textContent = /voices_read/.test(e.message)
+        ? "Key saved. It can't list your own voices, so here are ElevenLabs' standard voices. Press Test voice! (To see all your voices, give the key the \"Voices: read\" permission.)"
+        : e.message + ' Showing ElevenLabs standard voices instead. Press Test voice to check the key.';
+    }
+    sel.textContent = '';
+    list.forEach((v) => sel.add(new Option(v.name, v.id)));
+    if (!list.some((v) => v.id === vs.voiceId) && list.length) { vs.voiceId = list[0].id; voice.save(); }
+    sel.value = vs.voiceId;
+  }
+
+  voice.onError((m) => { $('vStatus').textContent = m + ' Using the browser voice for now.'; status(m); });
+  $('muteBtn').addEventListener('click', () => { setVoice({ enabled: !vs.enabled }); if (!vs.enabled) voice.stop(); });
+  $('voiceBtn').addEventListener('click', () => {
+    const panel = $('voicePanel');
+    panel.classList.toggle('hidden');
+    if (!panel.classList.contains('hidden')) {
+      $('vKey').value = vs.apiKey;
+      if (vs.apiKey && $('vVoice').options.length < 2) loadVoices();
+    }
+  });
+  $('vClose').addEventListener('click', () => $('voicePanel').classList.add('hidden'));
+  $('vTest').addEventListener('click', async () => {
+    if ($('vKey').value.trim() !== vs.apiKey) saveKey();
+    $('vStatus').textContent = voice.usingEleven ? 'Asking ElevenLabs…' : 'Using the free browser voice (no ElevenLabs key saved).';
+    const ok = await voice.speak(TEST_LINES[vs.preset] || TEST_LINES.squeaky, true);
+    if (ok && voice.usingEleven) $('vStatus').textContent = 'ElevenLabs voice working!';
+  });
+  $('vOn').addEventListener('change', (ev) => { setVoice({ enabled: ev.target.checked }); if (!vs.enabled) voice.stop(); });
+  $('vReact').addEventListener('change', (ev) => setVoice({ reactions: ev.target.checked }));
+  $('vEngine').addEventListener('change', (ev) => { setVoice({ engine: ev.target.value }); if (ev.target.value === 'eleven') loadVoices(); });
+  // Save the key on paste, on leaving the box, on Enter, or with the button
+  function saveKey() {
+    const key = $('vKey').value.replace(/[\s"'`]/g, '');
+    $('vKey').value = key;
+    if (key === vs.apiKey) { if (key) loadVoices(); return; }
+    setVoice({ apiKey: key, voiceId: '' });
+    if (!key) { $('vStatus').textContent = 'Key removed. Using the browser voice.'; loadVoices(); return; }
+    if (!/^sk_/.test(key)) $('vStatus').textContent = 'Saved, but ElevenLabs keys usually start with "sk_". Check you copied the whole key.';
+    loadVoices();
+  }
+  $('vKey').addEventListener('change', saveKey);
+  $('vKey').addEventListener('paste', () => setTimeout(saveKey, 0));
+  $('vKey').addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); saveKey(); } });
+  $('vKeySave').addEventListener('click', saveKey);
+  $('vVoice').addEventListener('change', (ev) => setVoice({ voiceId: ev.target.value, preset: 'custom' }));
+  $('vEffect').addEventListener('change', (ev) => setVoice({ effect: ev.target.value, preset: 'custom' }));
+  [['vPitch', 'pitch'], ['vSpeed', 'speed'], ['vVol', 'volume']].forEach(([id, key]) => {
+    $(id).addEventListener('input', (ev) => setVoice(key === 'volume' ? { volume: Number(ev.target.value) } : { [key]: Number(ev.target.value), preset: 'custom' }));
+  });
+  // Picking a character sets pitch, speed, effect and the closest-matching voice
+  $('vPreset').addEventListener('change', (ev) => {
+    const name = ev.target.value;
+    const p = PRESETS[name];
+    if (!p) { setVoice({ preset: name }); return; }
+    const opts = [...$('vVoice').options].filter((o) => o.value);
+    let match = null;
+    for (const want of p.find) {
+      match = opts.find((o) => o.text.toLowerCase().includes(want));
+      if (match) break;
+    }
+    setVoice({ preset: name, pitch: p.pitch, speed: p.speed, effect: p.effect, voiceId: match ? match.value : vs.voiceId });
+    if (match) $('vVoice').value = match.value;
+    $('vStatus').textContent = (match ? 'Voice: ' + match.text.split(' - ')[0] + '. ' : '') + 'Press Test voice!';
+  });
+  $('sayForm').addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    const text = $('sayText').value.trim();
+    if (text) voice.speak(text, true);
+  });
+  renderVoice();
+
   // ---------- Loop ----------
   let last = performance.now();
   function loop(now) {
@@ -236,12 +399,23 @@
       else if (face === null && time - lastFaceAt > 0.6) faceTarget = null;
     }
     const seeing = tracker.running && faceTarget && time - lastFaceAt < 0.6;
-    const target = forced || (seeing ? faceTarget : idle(time, !tracker.running));
+    let target = forced || (seeing ? faceTarget : idle(time, !tracker.running));
 
     const m = moodOf(target);
     if (m !== mood) { mood = m; alien.setMood(m); }
     const label = (seeing ? '' : tracker.running ? 'Looking for you… ' : 'Demo: ') + MOODS[m];
     if (label !== moodLabel) { moodLabel = label; $('mood').textContent = label; }
+    maybeReact(m, time, seeing);
+
+    // Move the mouth with the voice (on top of whatever the face is doing)
+    const talk = voice.level(time);
+    if (talk > 0) {
+      target = Object.assign({}, target, {
+        jawOpen: Math.max(target.jawOpen || 0, talk * 0.75),
+        funnel: Math.max(target.funnel || 0, talk * 0.25),
+        pucker: (target.pucker || 0) * (1 - talk)
+      });
+    }
 
     alien.update(target, dt, time);
     renderer.render(scene, camera);
