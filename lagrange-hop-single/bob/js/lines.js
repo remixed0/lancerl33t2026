@@ -75,6 +75,20 @@
     idle: {
       idle_1: 'Are you planning to launch, or are we just admiring the view?',
       idle_2: 'Take your time. I only have a few more million years.'
-    }
+    },
+
+    // Tutorial (Bob flies mission 1 himself; played in order by the game's js/tutorial.js)
+    tut_intro: { tut_intro: "Hi, I'm Bob, your alien co-pilot. I'll fly the first mission once, so watch closely. I don't do encores." },
+    tut_earth: { tut_earth: 'This is Earth. Your probe launches from here. Drag backward from it, like a slingshot, and let go.' },
+    tut_target: { tut_target: "That green ring is where you're going. Fly into it gently, and you're captured in orbit." },
+    tut_beacons: { tut_beacons: 'Those yellow crystals are science beacons. Collect all of them for three stars.' },
+    tut_moon: { tut_moon: "The Moon is moving. Fly close behind it, and it flings you faster for free. That's a gravity assist." },
+    tut_aim: { tut_aim: 'Now watch me aim. The dotted line shows exactly where the probe will go before you launch.' },
+    tut_launch: { tut_launch: "Launching. Notice how I'm not hitting anything. Yet." },
+    tut_assist: { tut_assist: "There's the slingshot. Free speed, courtesy of the Moon." },
+    tut_win: { tut_win: 'And that is a capture. Three stars, obviously. Your turn now. Try not to embarrass us both.' },
+    tut_help: { tut_help: "If you get stuck, press Autopilot and I'll fly it for you. Reluctantly." },
+    tut_skip: { tut_skip: "Skipping the tutorial? Bold. Let's see how that goes." },
+    tut_retry: { tut_retry: "Okay, that wasn't supposed to happen. Let me try that again." }
   };
 })();

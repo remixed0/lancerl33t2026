@@ -7,6 +7,10 @@ const bob = (() => {
   const queue = []; // events sent before Bob has loaded
   let ready = false;
   let hideTimer = 0;
+  let quiet = false;      // the tutorial switches off Bob's normal comments while it runs
+  const waiting = [];     // { group, resolve } for line() calls waiting for a line to finish
+  let readyResolve;
+  const readyPromise = new Promise((r) => { readyResolve = r; });
 
   function send(msg) {
     msg.type = 'bob';
@@ -26,12 +30,16 @@ const bob = (() => {
       ready = true;
       send({ event: 'mute', muted: !sfx.enabled });
       queue.splice(0).forEach(send);
+      readyResolve();
     } else if (d.type === 'bob-line') {
       bubble.textContent = d.text;
       bubble.classList.add('show');
       hideBubble(Math.max(4000, d.text.length * 75) + 4000); // fallback if 'bob-done' never comes
     } else if (d.type === 'bob-done') {
       hideBubble(1500);
+      for (let i = waiting.length - 1; i >= 0; i--) {
+        if (waiting[i].group === d.group) waiting.splice(i, 1)[0].resolve(true);
+      }
     }
   });
 
@@ -49,7 +57,7 @@ const bob = (() => {
   setInterval(() => {
     const modalOpen = !document.getElementById('victoryModal').classList.contains('hidden') ||
       !document.getElementById('manualModal').classList.contains('hidden');
-    if (!idleSaid && gameState === 'AIMING' && !autopilot && !modalOpen && !document.hidden &&
+    if (!idleSaid && !quiet && gameState === 'AIMING' && !autopilot && !modalOpen && !document.hidden &&
         performance.now() - lastInput > 45000) {
       idleSaid = true;
       send({ event: 'idle' });
@@ -57,8 +65,21 @@ const bob = (() => {
   }, 2000);
 
   return {
-    /** Tell Bob something happened, e.g. bob.event('crash', { body: 'Moon' }). */
-    event(name, detail) { send(Object.assign({ event: name }, detail || {})); },
-    mute(muted) { send({ event: 'mute', muted }); }
+    /** Tell Bob something happened, e.g. bob.event('crash', { body: 'Moon' }). Ignored while quiet. */
+    event(name, detail) { if (!quiet) send(Object.assign({ event: name }, detail || {})); },
+    mute(muted) { send({ event: 'mute', muted }); },
+    /** Say one specific line now; resolves when it has finished (or after a safety timeout). */
+    line(group, timeoutMs = 15000) {
+      return new Promise((resolve) => {
+        const entry = { group, resolve };
+        waiting.push(entry);
+        setTimeout(() => { const i = waiting.indexOf(entry); if (i >= 0) { waiting.splice(i, 1); resolve(false); } }, timeoutMs);
+        send({ event: 'line', group });
+      });
+    },
+    stop() { send({ event: 'stop' }); hideBubble(0); },
+    set quiet(v) { quiet = !!v; },
+    get quiet() { return quiet; },
+    ready: readyPromise
   };
 })();

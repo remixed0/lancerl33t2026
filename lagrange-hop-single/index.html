@@ -72,18 +72,40 @@
       <button id="btnHelp" class="px-3 py-2 bg-cyan-950/80 hover:bg-cyan-900 rounded-lg border border-cyan-500/40 text-cyan-300 transition text-xs font-mono-tech">
         MANUAL
       </button>
+      <button id="btnTutorial" class="px-3 py-2 bg-emerald-950/80 hover:bg-emerald-900 rounded-lg border border-emerald-500/40 text-emerald-300 transition text-xs font-mono-tech" title="Watch Bob fly Mission 1">
+        TUTORIAL
+      </button>
     </div>
   </header>
 
-  <!-- Level Select & Guidance Bar (Bottom) -->
+  <!-- Tutorial: markers on the scene, a banner with SKIP, and the first-visit offer (js/tutorial.js) -->
+  <div id="tutorialMarks" class="tutorial-marks" aria-hidden="true"></div>
+  <div id="tutorialBar" class="hidden tutorial-bar font-mono-tech" role="status">
+    <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+    <span>TUTORIAL · Bob is flying Mission 1</span>
+    <button id="tutBarSkip" title="Skip the tutorial (Esc)">SKIP ✕</button>
+  </div>
+  <div id="tutorialCard" class="hidden absolute inset-0 z-30 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-emerald-500/60 rounded-2xl p-6 sm:p-8 max-w-sm w-full text-center glow-cyan">
+      <h2 class="text-xl font-orbitron font-black text-emerald-400 tracking-wider mb-2">MEET BOB</h2>
+      <p class="text-sm font-mono-tech text-slate-300">Your alien co-pilot will fly Mission 1 once to show you how slingshots, beacons and captures work.</p>
+      <div class="flex gap-3 mt-6">
+        <button id="tutSkipBtn" class="flex-1 py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-orbitron text-xs font-bold transition">SKIP</button>
+        <button id="tutStartBtn" class="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-orbitron text-xs font-extrabold transition">▶ WATCH BOB FLY</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Bob, the alien co-pilot: no controls, he only speaks when game events happen (bob/ + js/bob.js).
-       He sits above the pop-ups (z-35) so his victory lines stay readable; clicks pass through him. -->
+       Bottom-right, above the mission bar; bigger at the bottom-left during the tutorial.
+       He sits above the pop-ups (z-35) so his lines stay readable; clicks pass through him. -->
   <div id="bobDock" class="bob-dock hidden sm:block">
     <p id="bobBubble" class="bob-bubble font-mono-tech" role="status" aria-live="polite"></p>
     <iframe id="bobFrame" src="bob/index.html?transparent=1&amp;subtitles=0" allow="autoplay" title="Bob, the alien co-pilot" tabindex="-1"></iframe>
   </div>
 
-  <div class="absolute bottom-4 left-0 right-0 z-10 px-4 sm:pl-[144px] flex flex-col sm:flex-row items-center justify-between gap-3 pointer-events-none">
+  <!-- Level Select & Guidance Bar (Bottom) -->
+  <div class="absolute bottom-4 left-0 right-0 z-10 px-4 flex flex-col sm:flex-row items-center justify-between gap-3 pointer-events-none">
     <!-- Slingshot Aim Guidance -->
     <div id="aimHint" class="hidden lg:flex max-w-xs xl:max-w-md bg-slate-900/90 backdrop-blur-md px-4 py-2 rounded-full border border-cyan-500/30 text-xs font-mono-tech text-cyan-300 items-center gap-2 pointer-events-auto">
       <span class="inline-block w-2 h-2 shrink-0 rounded-full bg-cyan-400 animate-ping"></span>
@@ -235,6 +257,7 @@
   <script src="js/autopilot.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/input.js"></script>
+  <script src="js/tutorial.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

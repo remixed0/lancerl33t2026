@@ -25,12 +25,26 @@ js/game.js          level loading, flight updates, launch, crash and victory
 js/autopilot.js     launch-window route search
 js/ui.js            aim bar, sliders, buttons, modals, resize
 js/input.js         mouse, touch and keyboard
+js/tutorial.js      tutorial: Bob flies mission 1 while explaining it
 js/main.js          main loop and start-up (loaded last)
-bob/                Bob himself: 3D alien head + 45 voice lines (shown in an iframe)
+bob/                Bob himself: 3D alien head + 57 voice lines (shown in an iframe)
 ```
 
+## Tutorial
+On the first visit a **MEET BOB** card offers the tutorial (**▶ WATCH BOB FLY** or **SKIP**); the **TUTORIAL** button in the top bar replays it. Bob, bigger in the bottom-left corner, flies mission 1 himself while 12 recorded tutorial lines explain it, with glowing markers on what he's talking about:
+
+1. Introduces himself.
+2. **Earth**: launch by dragging backward like a slingshot.
+3. **The target**: fly into the green ring gently to be captured.
+4. **The beacons**: collect them all for three stars.
+5. **The Moon**: it moves; fly close behind it for a free gravity assist.
+6. Aims (the dotted prediction line appears), launches, and captures with all beacons. He comments on the slingshot if he gets one, and retries once if something goes wrong.
+7. Hands over: "Your turn now", plus a tip about Autopilot.
+
+Then Bob glides to the **bottom-right corner** (smaller, above the mission bar, out of the way), the controls unlock and mission 1 starts for real. During the tutorial the player's controls are locked except the camera (`C`), labels (`L`) and sound; **SKIP** or `Esc` ends it early. Bob's demo capture doesn't count as a completed mission.
+
 ## Bob, the alien co-pilot
-A 3D alien head in the bottom-left corner. He has no buttons and takes no input: he floats, blinks and looks around, and **speaks only when something happens in the game**, playing a pre-recorded MP3 (`bob/audio/`) with his mouth moving, a matching face and a speech bubble:
+A 3D alien head in the bottom-right corner, above the mission bar. He has no buttons and takes no input: he floats, blinks and looks around, and **speaks only when something happens in the game**, playing a pre-recorded MP3 (`bob/audio/`) with his mouth moving, a matching face and a speech bubble:
 
 | Game event | Bob says |
 | --- | --- |

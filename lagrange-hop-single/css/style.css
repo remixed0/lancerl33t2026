@@ -84,24 +84,30 @@ body:not(.show-labels) .object-label { display: none; }
   text-shadow: 0 0 6px rgba(0, 0, 0, 0.95);
 }
 
-/* Bob, the alien co-pilot (bottom bar). He has no controls; clicks pass through to the game. */
+
+/* Bob, the alien co-pilot. He has no controls; clicks pass through to the game.
+   Normal play: small, bottom-right above the mission bar. Tutorial: bigger, bottom-left.
+   Both positions use left/bottom so the switch glides. */
 .bob-dock {
   position: absolute;
-  left: 16px;
-  bottom: 16px;
+  left: calc(100% - 112px);
+  bottom: 120px; /* just above the mission bar */
   z-index: 35;
-  width: 112px;
-  height: 112px;
+  width: 96px;
+  height: 96px;
   pointer-events: none;
   border-radius: 20px;
   border: 1px solid rgba(74, 222, 128, 0.35);
   background: radial-gradient(circle at 50% 40%, rgba(22, 101, 52, 0.45), rgba(15, 23, 42, 0.9));
   box-shadow: 0 0 18px rgba(74, 222, 128, 0.18);
+  transition: left 1.1s cubic-bezier(0.65, 0, 0.25, 1), bottom 1.1s cubic-bezier(0.65, 0, 0.25, 1),
+    width 1.1s cubic-bezier(0.65, 0, 0.25, 1), height 1.1s cubic-bezier(0.65, 0, 0.25, 1);
 }
+.bob-dock.bob-tutorial { left: 16px; bottom: 16px; width: 150px; height: 150px; }
 .bob-dock iframe { display: block; width: 100%; height: 100%; border: 0; border-radius: 20px; background: transparent; }
 .bob-bubble {
   position: absolute;
-  left: 0;
+  right: 0;
   bottom: calc(100% + 10px);
   width: max-content;
   max-width: min(360px, 80vw);
@@ -112,11 +118,87 @@ body:not(.show-labels) .object-label { display: none; }
   color: #e2e8f0;
   background: rgba(15, 23, 42, 0.94);
   border: 1px solid rgba(74, 222, 128, 0.5);
-  border-radius: 14px 14px 14px 4px;
+  border-radius: 14px 14px 4px 14px;
   box-shadow: 0 0 18px rgba(74, 222, 128, 0.2);
   opacity: 0;
   transform: translateY(6px);
   transition: opacity 0.2s, transform 0.2s;
 }
+.bob-tutorial .bob-bubble { right: auto; left: 0; max-width: min(460px, 80vw); font-size: 15px; border-radius: 14px 14px 14px 4px; }
 .bob-bubble.show { opacity: 1; transform: translateY(0); }
-@media (prefers-reduced-motion: reduce) { .bob-bubble { transition: none; } }
+
+/* Tutorial: markers that follow Earth, the target, beacons and the Moon */
+.tutorial-marks { position: absolute; inset: 0; z-index: 5; pointer-events: none; overflow: hidden; }
+.tut-mark {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--size);
+  height: var(--size);
+  margin: calc(var(--size) / -2) 0 0 calc(var(--size) / -2);
+  border: 2px solid #4ade80;
+  border-radius: 50%;
+  box-shadow: 0 0 18px rgba(74, 222, 128, 0.8), inset 0 0 14px rgba(74, 222, 128, 0.4);
+  animation: tutPulse 1.2s ease-in-out infinite;
+}
+.tut-mark span {
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  margin-top: 6px;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #4ade80;
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.95);
+}
+@keyframes tutPulse { 50% { box-shadow: 0 0 30px rgba(74, 222, 128, 1), inset 0 0 18px rgba(74, 222, 128, 0.6); } }
+
+/* Tutorial banner with SKIP */
+.tutorial-bar {
+  position: absolute;
+  top: 88px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 36;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px 6px 14px;
+  font-size: 12px;
+  color: #a7f3d0;
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid rgba(74, 222, 128, 0.5);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.tutorial-bar.hidden { display: none; }
+.tutorial-bar button {
+  padding: 4px 10px;
+  font: inherit;
+  font-weight: 700;
+  color: #e2e8f0;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.tutorial-bar button:hover { border-color: #4ade80; }
+.tutorial-bar button:focus-visible { outline: 2px solid #22d3ee; outline-offset: 2px; }
+
+/* While Bob flies the tutorial, the player's controls are locked (camera and sound still work) */
+body.tutorial #aimPanel,
+body.tutorial #levelBar,
+body.tutorial #btnReset,
+body.tutorial #btnMissionLog,
+body.tutorial #btnHelp,
+body.tutorial #btnTutorial { pointer-events: none; opacity: 0.45; }
+body.tutorial #aimHint { visibility: hidden; }
+
+@media (prefers-reduced-motion: reduce) {
+  .bob-dock, .bob-bubble { transition: none; }
+  .tut-mark { animation: none; }
+}

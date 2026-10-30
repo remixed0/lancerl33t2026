@@ -233,6 +233,16 @@ function triggerLost(reason) {
 
 function triggerVictory() {
   const first = probe.alive;
+  if (tutorial.active) {
+    // Bob's demo flight: celebrate, but don't score or unlock anything
+    gameState = 'CAPTURED';
+    probe.alive = false;
+    sfx.playVictory();
+    const tp = getCoords(currentLevel.target);
+    spawnCaptureRipples(tp.x, tp.y);
+    tutorial.onCapture();
+    return;
+  }
   gameState = 'CAPTURED';
   probe.alive = false;
   sfx.playVictory();
