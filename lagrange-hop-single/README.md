@@ -5,6 +5,28 @@ Angry Birds-style gravity-assist puzzle. Drag back from Earth to launch a probe,
 - `index.html` — Three.js (r128) 3D version. Open it in a browser; no build step.
 - `lagrange_hop_2d_original.html` — the original 2D Canvas version, kept for reference.
 
+## File layout
+Plain HTML, CSS and JavaScript: no modules, imports or build tools. The scripts are normal `<script>` tags that share global variables, so **the load order in `index.html` matters**: each file can use anything defined by the files above it.
+
+```
+index.html          page markup (HUD, aim bar, sidebar, modals) + script tags
+css/style.css       custom styles (layout utilities come from Tailwind)
+js/config.js        constants (gravity, world size, launch limits) and shared game state
+js/sound.js         synthesized sound effects
+js/levels.js        the 8 missions (edit here to change layouts)
+js/world.js         coordinates, orbit movement, world <-> 3D conversion
+js/physics.js       gravity, trajectory prediction, launch-aim maths
+js/planets.js       planet / Earth / relay station models, shaders and textures
+js/scene.js         Three.js scene setup, level building, per-frame sync
+js/camera.js        TOP / CHASE / ISO cameras
+js/progress.js      unlocks, best stars, level bar, mission log sidebar
+js/game.js          level loading, flight updates, launch, crash and victory
+js/autopilot.js     launch-window route search
+js/ui.js            aim bar, sliders, buttons, modals, resize
+js/input.js         mouse, touch and keyboard
+js/main.js          main loop and start-up (loaded last)
+```
+
 ## Controls
 - Drag from Earth and release to launch.
 - Bottom aim bar: **ANGLE** and **Δv sliders** with ‹ › buttons for 0.1 steps (Shift-click = 1.0), fuel left, the predicted outcome (capture, beacons, stars or crash), and buttons:
