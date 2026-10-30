@@ -7,7 +7,14 @@ Angry Birds-style gravity-assist puzzle. Drag back from Earth to launch a probe,
 
 ## Controls
 - Drag from Earth and release to launch.
+- Bottom aim bar: **ANGLE** and **Δv sliders** with ‹ › buttons for 0.1 steps (Shift-click = 1.0), fuel left, the predicted outcome (capture, beacons, stars or crash), and buttons:
+  - **AIM: QUICK / PRECISE** (`P`): precise mode doesn't launch on release; fine-tune with arrow keys (Shift = 4×), then **LAUNCH** or `Space`.
+  - **AUTOPILOT** (`A`): searches angle/power for the best route at the next launch window and flies it.
+  - **RESET** (`R`): back to Earth; the last flight stays as a faint ghost path.
+- Predicted path: glowing dots ending in a green ring (capture), red ✕ (crash) or grey dot (miss); beacons it will collect light up cyan.
 - **CAM** button or `C` key cycles TOP / CHASE / ISO camera views.
+- Object names are hidden to reduce clutter; `L` toggles them.
+- Moons and some asteroids move (patrol routes are drawn as faint red dashed circles), so launch timing matters; the preview and autopilot account for it.
 - Click the mission panel (top left) to open the **Mission Log**: every mission's status and best stars. `Esc` closes it.
 
 ## Campaign

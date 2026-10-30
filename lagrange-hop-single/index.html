@@ -41,6 +41,48 @@
       width: 100vw;
       height: 100vh;
     }
+    /* Aim bar buttons */
+    .aim-btn {
+      font-size: 11px;
+      padding: 5px 10px;
+      border-radius: 8px;
+      border: 1px solid #334155;
+      background: rgba(15, 23, 42, 0.85);
+      color: #cbd5e1;
+      transition: all 0.15s;
+    }
+    .aim-btn:hover { color: #fff; border-color: #64748b; }
+    .aim-btn.active { border-color: #22d3ee; color: #22d3ee; background: rgba(8, 51, 68, 0.85); }
+    .aim-btn.auto-active { border-color: #a78bfa; color: #c4b5fd; background: rgba(46, 16, 101, 0.7); }
+    .launch-btn {
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 700;
+      font-size: 11px;
+      padding: 5px 14px;
+      border-radius: 8px;
+      color: #021018;
+      background: linear-gradient(90deg, #22d3ee, #34d399);
+      transition: all 0.15s;
+    }
+    .launch-btn:hover:not(:disabled) { background: linear-gradient(90deg, #67e8f9, #6ee7b7); }
+    .launch-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .launch-btn.pulse { animation: launchPulse 1.2s infinite; }
+    @keyframes launchPulse { 50% { box-shadow: 0 0 18px rgba(52, 211, 153, 0.8); } }
+    .predict-good { color: #34d399 !important; }
+    .predict-bad { color: #fb7185 !important; }
+    .predict-auto { color: #c4b5fd !important; }
+
+    body:not(.show-labels) .object-label { display: none; }
+
+    /* Precision sliders */
+    .aim-slider { -webkit-appearance: none; appearance: none; height: 4px; border-radius: 4px; background: #1e293b; outline: none; }
+    .aim-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #22d3ee; box-shadow: 0 0 8px rgba(34, 211, 238, 0.8); cursor: pointer; }
+    .aim-slider::-moz-range-thumb { width: 14px; height: 14px; border: none; border-radius: 50%; background: #22d3ee; box-shadow: 0 0 8px rgba(34, 211, 238, 0.8); cursor: pointer; }
+    .aim-slider.dv::-webkit-slider-thumb { background: #34d399; box-shadow: 0 0 8px rgba(52, 211, 153, 0.8); }
+    .aim-slider.dv::-moz-range-thumb { background: #34d399; box-shadow: 0 0 8px rgba(52, 211, 153, 0.8); }
+    .step-btn { width: 22px; height: 20px; border-radius: 6px; border: 1px solid #334155; color: #94a3b8; font-size: 11px; line-height: 1; background: rgba(15, 23, 42, 0.85); }
+    .step-btn:hover { color: #fff; border-color: #64748b; }
+
     /* In-scene labels rendered by CSS2DRenderer */
     .scene-label {
       font-family: 'Share Tech Mono', monospace;
@@ -120,9 +162,35 @@
   <!-- Level Select & Guidance Bar (Bottom) -->
   <div class="absolute bottom-4 left-0 right-0 z-10 px-4 flex flex-col sm:flex-row items-center justify-between gap-3 pointer-events-none">
     <!-- Slingshot Aim Guidance -->
-    <div id="aimHint" class="bg-slate-900/90 backdrop-blur-md px-4 py-2 rounded-full border border-cyan-500/30 text-xs sm:text-sm font-mono-tech text-cyan-300 flex items-center gap-2 pointer-events-auto">
-      <span class="inline-block w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+    <div id="aimHint" class="hidden lg:flex max-w-xs xl:max-w-md bg-slate-900/90 backdrop-blur-md px-4 py-2 rounded-full border border-cyan-500/30 text-xs font-mono-tech text-cyan-300 items-center gap-2 pointer-events-auto">
+      <span class="inline-block w-2 h-2 shrink-0 rounded-full bg-cyan-400 animate-ping"></span>
       <span id="hintText">Drag back from Earth to aim trajectory, release to launch!</span>
+    </div>
+
+    <!-- Aim / launch control bar -->
+    <div id="aimPanel" class="bg-slate-900/90 backdrop-blur-md px-3 py-2 rounded-xl border border-slate-700/60 font-mono-tech flex flex-col gap-1.5 pointer-events-auto w-full sm:w-auto sm:min-w-[340px]">
+      <!-- Precision controls: drag a slider, tap ‹ › for 0.1 steps (Shift-click = 1.0) -->
+      <div class="grid grid-cols-[52px_22px_1fr_22px_72px] items-center gap-x-1.5 gap-y-1.5 text-[11px] text-slate-400">
+        <span>ANGLE</span>
+        <button class="step-btn" data-step="angle" data-dir="-1" title="-0.1° (Shift: -1°)">‹</button>
+        <input id="angleSlider" class="aim-slider" type="range" min="0" max="359.9" step="0.1" value="0" aria-label="Launch angle">
+        <button class="step-btn" data-step="angle" data-dir="1" title="+0.1° (Shift: +1°)">›</button>
+        <b id="aimAngle" class="text-white text-right">—</b>
+
+        <span>Δv</span>
+        <button class="step-btn" data-step="dv" data-dir="-1" title="-0.1 km/s (Shift: -1)">‹</button>
+        <input id="dvSlider" class="aim-slider dv" type="range" min="2.4" max="27.4" step="0.1" value="2.4" aria-label="Launch delta-v">
+        <button class="step-btn" data-step="dv" data-dir="1" title="+0.1 km/s (Shift: +1)">›</button>
+        <b id="aimSpeed" class="text-white text-right">—</b>
+      </div>
+      <div class="text-[11px] text-slate-400">FUEL LEFT AFTER LAUNCH <b id="aimFuel" class="text-white">—</b></div>
+      <div id="predictText" class="text-[11px] text-slate-400 min-h-[15px]">Drag from Earth to aim</div>
+      <div class="flex gap-1.5 flex-wrap">
+        <button id="preciseBtn" class="aim-btn" title="Precise aim: drag, fine-tune with arrow keys, then launch (P)">AIM: QUICK</button>
+        <button id="autoBtn" class="aim-btn" title="Autopilot searches for a 3-star route and flies it (A)">AUTOPILOT</button>
+        <button id="aimResetBtn" class="aim-btn" title="Reset probe (R)">RESET</button>
+        <button id="launchBtn" class="launch-btn" title="Launch (Space)" disabled>LAUNCH ▶</button>
+      </div>
     </div>
 
     <!-- Level Selector Bar -->
@@ -352,7 +420,7 @@
     const G_CONSTANT = 3400; // Gravitational constant scaled for world-unit dynamics
     const MAX_LAUNCH_PULL = 180; // world units
     const MAX_DELTA_V = 9.8;
-    const PREDICTION_STEPS = 600; // long enough to reach the far side of the world at full Δv
+    const PREDICTION_STEPS = 1500; // long enough to show slow, low-fuel routes all the way to the target
     const TIME_STEP = 0.35;
     // Playtest tuning: at full strength Earth's escape velocity (~149) dwarfs MAX_DELTA_V and
     // every launch fell back. Earth acts as a launch pad; planets keep 2.5% of G so all missions are solvable.
@@ -373,10 +441,15 @@
     let maxBoostMultiplier = 1.0;
     let launchDeltaVUsed = 0;
 
-    // Slingshot drag state (world coordinates)
-    let isAiming = false;
-    let dragStart = { x: 0, y: 0 };
-    let dragCurrent = { x: 0, y: 0 };
+    // Slingshot aim. angle is the launch heading in world coords (y down); power is 0..1 of MAX_DELTA_V.
+    // Set by dragging, fine-tuned with arrow keys in precise mode, or chosen by the autopilot.
+    let isAiming = false; // pointer is currently dragging from Earth
+    let aim = { set: false, angle: 0, power: 0 };
+    const MIN_AIM_POWER = 16 / MAX_LAUNCH_PULL; // shorter pulls are treated as accidental taps
+    const POWER_STEP = 0.1 / (MAX_DELTA_V * 2.8); // one arrow-key press = 0.1 km/s as shown in the HUD
+    let tickCount = 0; // physics/orbit ticks since load (one per frame); autopilot launch windows use it
+    let precise = false;  // precise mode: releasing the drag does not launch
+    let autopilot = null; // { phase: 'search' | 'wait', ... } while the autopilot is working
 
     // Particle pool for exhaust and impacts
     let particles = [];
@@ -389,7 +462,7 @@
       vy: 0,
       radius: 4.5,
       trail: [],
-      maxTrail: 160,
+      maxTrail: 1600,
       alive: true,
       fuelSpent: 0
     };
@@ -398,12 +471,17 @@
     function rock(x, y, radius, name) {
       return { x, y, radius, color: '#78716c', name };
     }
-    function debrisRing(cx, cy, ringRadius, angles, radius, name) {
+    // Debris that orbits a planet (cx, cy) at ringRadius world units, starting at the given angles
+    function debrisRing(cx, cy, ringRadius, angles, radius, name, speed = 0) {
       return angles.map((a, i) => Object.assign(rock(
         cx + Math.cos(a) * ringRadius / WORLD_W,
         cy + Math.sin(a) * ringRadius / WORLD_H,
         radius, `${name} ${i + 1}`
-      ), { hideLabel: true })); // unlabeled so the ring stays readable
+      ), speed ? { orbitCenter: { x: cx, y: cy }, orbitRadius: ringRadius, orbitSpeed: speed, angle: a } : {}));
+    }
+    // A rock that circles its own spot (radius in world units, speed in radians per frame): a moving obstacle
+    function patrol(r, orbitRadius, speed, angle = 0) {
+      return Object.assign(r, { orbitCenter: { x: r.x, y: r.y }, orbitRadius, orbitSpeed: speed, angle });
     }
 
     // --- LEVEL DEFINITIONS (ordered easiest -> hardest; each unlocks the next) ---
@@ -419,57 +497,59 @@
         ],
         target: { name: "Deep Space Relay", x: 0.88, y: 0.28, radius: 16, captureRadius: 46, color: '#34d399' },
         beacons: [
-          { x: 0.34, y: 0.418, collected: false },
-          { x: 0.519, y: 0.339, collected: false },
-          { x: 0.702, y: 0.309, collected: false }
+          { x: 0.34, y: 0.424, collected: false },
+          { x: 0.517, y: 0.347, collected: false },
+          { x: 0.699, y: 0.309, collected: false }
         ],
         hazards: []
       },
       {
         title: "MISSION 02: MARS INSERTION",
         subtitle: "Navigate the asteroid field and enter the Mars capture envelope.",
-        hint: "Thread the gap between the asteroid clusters. Use delicate throttle control.",
+        hint: "Deimos and a drifting asteroid are moving. Watch the preview and time your launch.",
         earth: { x: 0.14, y: 0.72, radius: 26, color: '#38bdf8', mass: 85, name: 'Earth' },
         bodies: [
-          { name: "Mars", x: 0.82, y: 0.32, radius: 20, mass: 42, color: '#fb923c' }
+          { name: "Mars", x: 0.82, y: 0.32, radius: 20, mass: 42, color: '#fb923c' },
+          { name: "Deimos", x: 0.82, y: 0.32, radius: 7, mass: 4, color: '#a8a29e',
+            orbitCenter: { x: 0.82, y: 0.32 }, orbitRadius: 80, orbitSpeed: 0.012, angle: 2.5 }
         ],
         target: { name: "Mars Orbital Station", x: 0.82, y: 0.32, radius: 20, captureRadius: 54, color: '#fb923c' },
         beacons: [
-          { x: 0.291, y: 0.643, collected: false },
-          { x: 0.436, y: 0.568, collected: false },
-          { x: 0.599, y: 0.481, collected: false }
+          { x: 0.277, y: 0.636, collected: false },
+          { x: 0.411, y: 0.554, collected: false },
+          { x: 0.571, y: 0.458, collected: false }
         ],
         hazards: [
           rock(0.46, 0.66, 14, 'Debris A'),
           rock(0.49, 0.46, 16, 'Debris B'),
           rock(0.54, 0.24, 15, 'Debris C'),
-          rock(0.68, 0.16, 12, 'Asteroid Ceres')
+          patrol(rock(0.68, 0.16, 12, 'Asteroid Ceres'), 30, 0.02)
         ]
       },
       {
         title: "MISSION 03: VENUS SWING-BY",
         subtitle: "Use Venus to bend a steep climb toward the Mercury transfer orbit.",
-        hint: "Venus is heavy. Skim past it to turn your path upward without spending extra fuel.",
+        hint: "Skim Venus to bend upward for free. Two debris rocks patrol, so time your launch.",
         earth: { x: 0.12, y: 0.76, radius: 26, color: '#38bdf8', mass: 85, name: 'Earth' },
         bodies: [
           { name: "Venus", x: 0.44, y: 0.46, radius: 22, mass: 70, color: '#fcd34d' }
         ],
         target: { name: "Mercury Transfer Orbit", x: 0.86, y: 0.24, radius: 14, captureRadius: 44, color: '#34d399' },
         beacons: [
-          { x: 0.368, y: 0.746, collected: false },
-          { x: 0.572, y: 0.632, collected: false },
-          { x: 0.733, y: 0.436, collected: false }
+          { x: 0.267, y: 0.506, collected: false },
+          { x: 0.461, y: 0.295, collected: false },
+          { x: 0.669, y: 0.252, collected: false }
         ],
         hazards: [
           rock(0.28, 0.36, 14, 'Solar Debris'),
-          rock(0.62, 0.72, 14, 'Comet Fragment'),
-          rock(0.70, 0.44, 12, 'Debris Field')
+          patrol(rock(0.62, 0.72, 14, 'Comet Fragment'), 45, 0.015),
+          patrol(rock(0.70, 0.44, 12, 'Debris Field'), 30, -0.02, 1.5)
         ]
       },
       {
         title: "MISSION 04: ASTEROID BELT RUN",
         subtitle: "Thread a gap in the main belt, using Vesta and Ceres to steer.",
-        hint: "Find a gap in the belt. Vesta and Ceres can pull you through, or into the rocks.",
+        hint: "Two belt rocks drift back and forth. Launch when the gap you want is open.",
         earth: { x: 0.10, y: 0.50, radius: 25, color: '#38bdf8', mass: 85, name: 'Earth' },
         bodies: [
           { name: "Vesta", x: 0.30, y: 0.24, radius: 15, mass: 40, color: '#a8a29e' },
@@ -477,47 +557,49 @@
         ],
         target: { name: "Belt Outpost", x: 0.88, y: 0.40, radius: 15, captureRadius: 42, color: '#2dd4bf' },
         beacons: [
-          { x: 0.282, y: 0.505, collected: false },
-          { x: 0.429, y: 0.473, collected: false },
-          { x: 0.574, y: 0.427, collected: false },
-          { x: 0.718, y: 0.391, collected: false }
+          { x: 0.278, y: 0.51, collected: false },
+          { x: 0.425, y: 0.486, collected: false },
+          { x: 0.569, y: 0.446, collected: false },
+          { x: 0.712, y: 0.417, collected: false }
         ],
         hazards: [
           rock(0.49, 0.16, 14, 'Belt Rock 1'),
-          rock(0.52, 0.29, 15, 'Belt Rock 2'),
+          patrol(rock(0.52, 0.29, 15, 'Belt Rock 2'), 28, 0.018),
           rock(0.48, 0.42, 13, 'Belt Rock 3'),
           rock(0.51, 0.56, 16, 'Belt Rock 4'),
-          rock(0.50, 0.69, 14, 'Belt Rock 5'),
+          patrol(rock(0.50, 0.69, 14, 'Belt Rock 5'), 28, -0.018, 2),
           rock(0.53, 0.83, 13, 'Belt Rock 6')
         ]
       },
       {
         title: "MISSION 05: THE GRAND TOUR",
         subtitle: "Double gravity assist: slingshot between Jupiter and Ganymede to reach Europa.",
-        hint: "A massive gravity well will sharply curve your path. Master the dual slingshot!",
+        hint: "Ganymede and Io both orbit Jupiter. Wait for a clean launch window.",
         earth: { x: 0.12, y: 0.5, radius: 25, color: '#38bdf8', mass: 80, name: 'Earth' },
         bodies: [
           { name: "Jupiter", x: 0.48, y: 0.5, radius: 36, mass: 145, color: '#f59e0b', texture: 'bands' },
           { name: "Ganymede", x: 0.48, y: 0.22, radius: 12, mass: 20, color: '#a78bfa',
-            orbitCenter: { x: 0.48, y: 0.5 }, orbitRadius: 105, orbitSpeed: 0.012, angle: 1.5 }
+            orbitCenter: { x: 0.48, y: 0.5 }, orbitRadius: 105, orbitSpeed: 0.012, angle: 1.5 },
+          { name: "Io", x: 0.48, y: 0.5, radius: 8, mass: 8, color: '#fde047',
+            orbitCenter: { x: 0.48, y: 0.5 }, orbitRadius: 62, orbitSpeed: 0.02, angle: 0 }
         ],
         target: { name: "Europa Research Base", x: 0.88, y: 0.5, radius: 18, captureRadius: 46, color: '#2dd4bf' },
         beacons: [
-          { x: 0.259, y: 0.716, collected: false },
-          { x: 0.42, y: 0.829, collected: false },
-          { x: 0.601, y: 0.806, collected: false },
-          { x: 0.746, y: 0.679, collected: false }
+          { x: 0.263, y: 0.696, collected: false },
+          { x: 0.424, y: 0.804, collected: false },
+          { x: 0.6, y: 0.787, collected: false },
+          { x: 0.748, y: 0.678, collected: false }
         ],
         hazards: [
           rock(0.64, 0.46, 11, 'Radiation Belt'),
           rock(0.34, 0.70, 13, 'Space Junk'),
-          rock(0.30, 0.30, 12, 'Trojan Asteroid')
+          patrol(rock(0.30, 0.30, 12, 'Trojan Asteroid'), 35, 0.012)
         ]
       },
       {
         title: "MISSION 06: SATURN RING DIVE",
         subtitle: "Dive past Saturn's ring debris while Titan and Enceladus tug at your path.",
-        hint: "Two moons orbit in opposite directions. Watch the preview and time your launch.",
+        hint: "Moons and ring debris orbit Saturn. Watch the preview and time your launch.",
         earth: { x: 0.10, y: 0.80, radius: 25, color: '#38bdf8', mass: 85, name: 'Earth' },
         bodies: [
           { name: "Saturn", x: 0.50, y: 0.48, radius: 30, mass: 120, color: '#eab308', texture: 'bands', rings: true },
@@ -528,37 +610,39 @@
         ],
         target: { name: "Titan Relay Station", x: 0.88, y: 0.18, radius: 14, captureRadius: 40, color: '#34d399' },
         beacons: [
-          { x: 0.202, y: 0.529, collected: false },
-          { x: 0.323, y: 0.306, collected: false },
-          { x: 0.502, y: 0.154, collected: false },
-          { x: 0.698, y: 0.14, collected: false }
+          { x: 0.223, y: 0.559, collected: false },
+          { x: 0.343, y: 0.362, collected: false },
+          { x: 0.512, y: 0.208, collected: false },
+          { x: 0.692, y: 0.171, collected: false }
         ],
-        hazards: debrisRing(0.50, 0.48, 112, [0.4, 1.5, 2.6, 4.0, 5.3], 11, 'Ring Debris')
+        hazards: debrisRing(0.50, 0.48, 112, [0.4, 1.5, 2.6, 4.0, 5.3], 11, 'Ring Debris', 0.006)
       },
       {
         title: "MISSION 07: ICE GIANT RELAY",
         subtitle: "Chain assists off Uranus and Neptune to reach the Kuiper Gateway.",
-        hint: "Two ice giants, one moving moon. Plan a double bend around the debris.",
+        hint: "Two ice giants, two moving moons and patrolling debris. Timing is everything.",
         earth: { x: 0.08, y: 0.24, radius: 24, color: '#38bdf8', mass: 85, name: 'Earth' },
         bodies: [
           { name: "Uranus", x: 0.36, y: 0.64, radius: 24, mass: 85, color: '#67e8f9', texture: 'bands' },
           { name: "Neptune", x: 0.66, y: 0.34, radius: 24, mass: 90, color: '#3b82f6', texture: 'bands' },
           { name: "Triton", x: 0.66, y: 0.34, radius: 9, mass: 10, color: '#cbd5e1',
-            orbitCenter: { x: 0.66, y: 0.34 }, orbitRadius: 62, orbitSpeed: 0.014, angle: 2.0 }
+            orbitCenter: { x: 0.66, y: 0.34 }, orbitRadius: 62, orbitSpeed: 0.014, angle: 2.0 },
+          { name: "Nereid", x: 0.36, y: 0.64, radius: 7, mass: 6, color: '#cbd5e1',
+            orbitCenter: { x: 0.36, y: 0.64 }, orbitRadius: 70, orbitSpeed: -0.012, angle: 1.0 }
         ],
         target: { name: "Kuiper Gateway", x: 0.90, y: 0.78, radius: 14, captureRadius: 38, color: '#2dd4bf' },
         beacons: [
-          { x: 0.228, y: 0.643, collected: false },
-          { x: 0.504, y: 0.38, collected: false },
-          { x: 0.788, y: 0.14, collected: false },
-          { x: 0.935, y: 0.332, collected: false },
-          { x: 0.96, y: 0.68, collected: false }
+          { x: 0.24, y: 0.301, collected: false },
+          { x: 0.367, y: 0.372, collected: false },
+          { x: 0.482, y: 0.473, collected: false },
+          { x: 0.629, y: 0.616, collected: false },
+          { x: 0.754, y: 0.696, collected: false }
         ],
         hazards: [
           rock(0.22, 0.46, 14, 'Centaur 1'),
           rock(0.50, 0.20, 15, 'Centaur 2'),
-          rock(0.52, 0.52, 13, 'Centaur 3'),
-          rock(0.80, 0.60, 14, 'Centaur 4'),
+          patrol(rock(0.52, 0.52, 13, 'Centaur 3'), 40, 0.016),
+          patrol(rock(0.80, 0.60, 14, 'Centaur 4'), 30, -0.02),
           rock(0.62, 0.80, 13, 'Centaur 5')
         ]
       },
@@ -569,6 +653,8 @@
         earth: { x: 0.07, y: 0.50, radius: 24, color: '#38bdf8', mass: 85, name: 'Earth' },
         bodies: [
           { name: "Saturn", x: 0.28, y: 0.26, radius: 26, mass: 100, color: '#eab308', texture: 'bands', rings: true },
+          { name: "Titan", x: 0.28, y: 0.26, radius: 9, mass: 12, color: '#fb923c',
+            orbitCenter: { x: 0.28, y: 0.26 }, orbitRadius: 70, orbitSpeed: 0.012, angle: 3.0 },
           { name: "Jupiter", x: 0.52, y: 0.68, radius: 34, mass: 110, color: '#f59e0b', texture: 'bands' },
           { name: "Io", x: 0.52, y: 0.68, radius: 9, mass: 10, color: '#fde047',
             orbitCenter: { x: 0.52, y: 0.68 }, orbitRadius: 85, orbitSpeed: 0.015, angle: 4.5 },
@@ -576,20 +662,20 @@
         ],
         target: { name: "Heliopause Probe Dock", x: 0.93, y: 0.62, radius: 13, captureRadius: 36, color: '#34d399' },
         beacons: [
-          { x: 0.249, y: 0.579, collected: false },
-          { x: 0.464, y: 0.489, collected: false },
-          { x: 0.7, y: 0.594, collected: false },
-          { x: 0.843, y: 0.697, collected: false },
-          { x: 0.92, y: 0.708, collected: false }
+          { x: 0.262, y: 0.485, collected: false },
+          { x: 0.42, y: 0.382, collected: false },
+          { x: 0.566, y: 0.271, collected: false },
+          { x: 0.72, y: 0.204, collected: false },
+          { x: 0.875, y: 0.382, collected: false }
         ],
         hazards: [
           rock(0.18, 0.72, 13, 'Kuiper Object 1'),
-          rock(0.38, 0.48, 14, 'Kuiper Object 2'),
+          patrol(rock(0.38, 0.48, 14, 'Kuiper Object 2'), 40, 0.015),
           rock(0.42, 0.16, 13, 'Kuiper Object 3'),
-          rock(0.63, 0.44, 14, 'Kuiper Object 4'),
+          patrol(rock(0.63, 0.44, 14, 'Kuiper Object 4'), 35, -0.018),
           rock(0.66, 0.15, 12, 'Kuiper Object 5'),
           rock(0.88, 0.34, 13, 'Kuiper Object 6'),
-          rock(0.74, 0.84, 14, 'Kuiper Object 7'),
+          patrol(rock(0.74, 0.84, 14, 'Kuiper Object 7'), 30, 0.02),
           rock(0.30, 0.86, 12, 'Kuiper Object 8')
         ]
       }
@@ -605,6 +691,15 @@
       };
     }
 
+    // Everything with an orbitCenter (moons and patrolling asteroids) moves orbitSpeed radians per tick
+    function orbiters() {
+      return currentLevel.bodies.concat(currentLevel.hazards).filter(o => o.orbitCenter && o.orbitSpeed);
+    }
+    function advanceOrbits(ticks) {
+      orbiters().forEach(o => { o.angle = (o.angle || 0) + o.orbitSpeed * ticks; });
+    }
+
+    // Works for planets, moons and hazards: orbiting objects circle orbitCenter, others stay put
     function getBodyPos(b) {
       return b.orbitCenter
         ? {
@@ -629,7 +724,10 @@
     let renderer, labelRenderer, scene, camera;
     let levelGroup;
     let levelObjects = null;
-    let probeGroup, trailLine, predLine, predEnd, cordLine, reticle, aimLabel, particlePoints;
+    let probeGroup, trailLine, ghostLine, predPoints, predEnd, aimArrow, cordLine, reticle, aimLabel, particlePoints;
+    let ghostTrail = [];   // previous flight, drawn faintly for comparison
+    let prediction = null; // latest predicted path + outcome while aiming
+    const PRED_DOTS = Math.ceil((PREDICTION_STEPS + 2) / 2); // every other predicted point becomes a dot
     let glowTexture;
     const raycaster = new THREE.Raycaster();
     const orbitalPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
@@ -658,61 +756,230 @@
       return new THREE.CanvasTexture(c);
     }
 
-    function shade(hex, amount) {
-      const col = new THREE.Color(hex);
-      col.lerp(new THREE.Color(amount > 0 ? '#ffffff' : '#000000'), Math.abs(amount));
-      return col.getStyle();
+    // ---------- Planet look: gas giants are animated shaders, rocky worlds get noise textures ----------
+    // tilt: how far the pole leans toward the camera (radians), so the top view shows bands / rings in 3D.
+    // atmo: rim + halo glow colour (null = airless, faint halo only).
+    const PLANET_STYLES = {
+      Moon:      { kind: 'rock', paint: 'moon',     atmo: null,      tilt: 0.3 },
+      Mars:      { kind: 'rock', paint: 'mars',     atmo: '#ff9f6e', tilt: 0.45 },
+      Vesta:     { kind: 'rock', paint: 'asteroid', atmo: null,      tilt: 0.3 },
+      Ceres:     { kind: 'rock', paint: 'asteroid', atmo: null,      tilt: 0.3 },
+      Ganymede:  { kind: 'rock', paint: 'ganymede', atmo: null,      tilt: 0.3 },
+      Io:        { kind: 'rock', paint: 'io',       atmo: '#ffd27a', tilt: 0.3 },
+      Enceladus: { kind: 'rock', paint: 'icy',      atmo: '#cfeaff', tilt: 0.3 },
+      Triton:    { kind: 'rock', paint: 'icy',      atmo: '#ffd6e0', tilt: 0.3 },
+      Phobos:    { kind: 'rock', paint: 'asteroid', atmo: null,      tilt: 0.3 },
+      Deimos:    { kind: 'rock', paint: 'asteroid', atmo: null,      tilt: 0.3 },
+      Nereid:    { kind: 'rock', paint: 'icy',      atmo: null,      tilt: 0.3 },
+      Venus:   { kind: 'gas', atmo: '#ffe2a0', tilt: 0.3,
+                 gas: { c1: '#ecd9a4', c2: '#cfae74', c3: '#f8f0d8', bands: 5, turb: 7, flow: 0.12, spot: 0 } },
+      Titan:   { kind: 'gas', atmo: '#ffb060', tilt: 0.3,
+                 gas: { c1: '#d98c3a', c2: '#b8702c', c3: '#eeb066', bands: 4, turb: 2.5, flow: 0.05, spot: 0 } },
+      Jupiter: { kind: 'gas', atmo: '#ffd2a0', tilt: 0.4,
+                 gas: { c1: '#efdcbc', c2: '#b37b52', c3: '#f7efe2', bands: 14, turb: 3.4, flow: 0.07, spot: 1 } },
+      // Pole leans sideways (yaw) as well, so the rings read as an open ellipse in both TOP and ISO views
+      Saturn:  { kind: 'gas', atmo: '#ffe6b0', tilt: Math.PI / 2, yaw: 1.0,
+                 gas: { c1: '#eedcab', c2: '#c8a26a', c3: '#f7ecd2', bands: 18, turb: 1.6, flow: 0.05, spot: 0 } },
+      Uranus:  { kind: 'gas', atmo: '#a6f2ff', tilt: 1.35,
+                 gas: { c1: '#a6e8ee', c2: '#86d0da', c3: '#d2f6f8', bands: 8, turb: 1.2, flow: 0.03, spot: 0 } },
+      Neptune: { kind: 'gas', atmo: '#6fa4ff', tilt: 0.45,
+                 gas: { c1: '#4677e6', c2: '#2a50b6', c3: '#8fb4ff', bands: 10, turb: 2.8, flow: 0.09, spot: 0.8, spotColor: '#1a2f78' } }
+    };
+
+    const SUN_DIR = new THREE.Vector3(-700, 500, 1400).normalize(); // matches the directional light
+
+    const GAS_VERTEX = `
+      varying vec3 vPos;
+      varying vec3 vN;
+      varying vec3 vView;
+      void main() {
+        vPos = position;
+        vN = normalize(mat3(modelMatrix) * normal);
+        vec4 wp = modelMatrix * vec4(position, 1.0);
+        vView = cameraPosition - wp.xyz;
+        gl_Position = projectionMatrix * viewMatrix * wp;
+      }`;
+
+    // Banded cloud deck: zonal jets flow in alternating directions by latitude, with
+    // turbulent noise distorting the band edges, plus an optional drifting storm spot
+    const GAS_FRAGMENT = `
+      uniform float time;
+      uniform vec3 c1, c2, c3, atmo, spotColor, sunDir;
+      uniform float bands, turb, flow, spot;
+      varying vec3 vPos;
+      varying vec3 vN;
+      varying vec3 vView;
+      float hash(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+      float noise(vec3 x) {
+        vec3 i = floor(x); vec3 f = fract(x); f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(mix(hash(i), hash(i + vec3(1,0,0)), f.x), mix(hash(i + vec3(0,1,0)), hash(i + vec3(1,1,0)), f.x), f.y),
+                   mix(mix(hash(i + vec3(0,0,1)), hash(i + vec3(1,0,1)), f.x), mix(hash(i + vec3(0,1,1)), hash(i + vec3(1,1,1)), f.x), f.y), f.z);
+      }
+      float fbm(vec3 p) { float v = 0.0, a = 0.5; for (int i = 0; i < 5; i++) { v += a * noise(p); p *= 2.03; a *= 0.5; } return v; }
+      void main() {
+        vec3 p = normalize(vPos);
+        float lat = asin(clamp(p.y, -1.0, 1.0));
+        float lon = atan(p.z, p.x);
+        float l2 = lon + time * flow * sin(lat * bands * 0.5);
+        vec3 q = vec3(cos(l2) * cos(lat), sin(lat), sin(l2) * cos(lat));
+        float n = fbm(q * 3.0 + vec3(0.0, 0.0, time * 0.03));
+        float w = fbm(q * 7.0 - vec3(time * 0.05));
+        float b = sin(lat * bands + (n - 0.5) * turb + (w - 0.5) * turb * 0.5);
+        vec3 col = mix(c1, c2, smoothstep(-0.5, 0.5, b));
+        col = mix(col, c3, smoothstep(0.55, 0.8, n) * 0.6);
+        if (spot > 0.0) {
+          float dl = (lat + 0.38) / 0.11;
+          float dlon = atan(sin(l2 - 1.2), cos(l2 - 1.2)) / 0.28;
+          col = mix(col, spotColor, smoothstep(1.0, 0.15, dl * dl + dlon * dlon) * spot);
+        }
+        vec3 nn = normalize(vN);
+        float ndl = max(dot(nn, sunDir), 0.0);
+        col *= 0.1 + 0.95 * pow(ndl, 0.8);
+        float rim = pow(1.0 - max(dot(nn, normalize(vView)), 0.0), 3.0);
+        col += atmo * rim * 0.7 * (0.3 + ndl);
+        gl_FragColor = vec4(col, 1.0);
+      }`;
+
+    // Rocky surfaces painted from the same seamless sphere noise as Earth
+    const ROCK_PAINTERS = {
+      moon(x, y, z) {
+        let v = 0.55 + (fbm(x * 3, y * 3, z * 3, 5) - 0.5) * 0.7;
+        if (fbm(x * 1.3 + 5, y * 1.3, z * 1.3, 3) > 0.55) v -= 0.18;  // dark maria
+        v += craterNoise(x, y, z, 7) * 0.25;
+        const g = Math.max(0, Math.min(1, v)) * 230;
+        return [g, g, g * 1.02];
+      },
+      mars(x, y, z, lat) {
+        const n = fbm(x * 2.5 + 3, y * 2.5, z * 2.5, 5);
+        let c = [150 + 70 * n, 60 + 50 * n, 30 + 30 * n];
+        if (fbm(x * 1.5 + 9, y * 1.5, z * 1.5, 3) > 0.58) c = [c[0] * 0.65, c[1] * 0.6, c[2] * 0.6];
+        if (Math.abs(lat) > 1.3) c = [240, 230, 225];
+        return c;
+      },
+      asteroid(x, y, z) {
+        const v = 0.5 + (fbm(x * 4 + 7, y * 4, z * 4, 5) - 0.5) * 0.8 + craterNoise(x, y, z, 9) * 0.3;
+        const g = Math.max(0, Math.min(1, v));
+        return [g * 165, g * 150, g * 135];
+      },
+      ganymede(x, y, z) {
+        const n = fbm(x * 3 + 20, y * 3, z * 3, 5);
+        const c = n > 0.5 ? [175, 165, 175] : [110, 100, 115];
+        const k = craterNoise(x, y, z, 5) * 40;
+        return c.map(v => v + k);
+      },
+      icy(x, y, z) {
+        const n = fbm(x * 3 + 60, y * 3, z * 3, 4);
+        const line = Math.abs(Math.sin(x * 7 + fbm(x * 6, y * 6, z * 6, 2) * 6));
+        const crack = line < 0.08 ? 0.62 : 1;
+        return [(215 + n * 35) * crack, (220 + n * 30) * crack, (232 + n * 20) * crack];
+      },
+      io(x, y, z) {
+        const n = fbm(x * 3 + 30, y * 3, z * 3, 5);
+        let c = [230 - n * 40, 200 - n * 30, 70 + n * 30];
+        const v = noise3(x * 6 + 50, y * 6, z * 6);
+        if (v > 0.82) c = [60, 35, 20];        // volcanic vents
+        else if (v > 0.74) c = [200, 90, 40];  // lava flows
+        return c;
+      }
+    };
+
+    function craterNoise(x, y, z, scale) {
+      const n = noise3(x * scale + 100, y * scale, z * scale);
+      if (n > 0.9) return -0.6;
+      if (n > 0.86) return 0.4;
+      return 0;
     }
 
-    // Procedural surface textures so planets read as spheres when they spin
-    function makePlanetTexture(hex, kind) {
+    const rockTextureCache = {};
+    function getRockTexture(paint) {
+      if (rockTextureCache[paint]) return rockTextureCache[paint];
+      const W = 384, H = 192;
       const c = document.createElement('canvas');
-      c.width = 256;
-      c.height = 128;
-      const g = c.getContext('2d');
-      g.fillStyle = hex;
-      g.fillRect(0, 0, 256, 128);
-
-      if (kind === 'bands') {
-        for (let y = 0; y < 128; y += 8) {
-          g.fillStyle = shade(hex, (Math.sin(y * 0.37) * 0.28));
-          g.globalAlpha = 0.75;
-          g.fillRect(0, y, 256, 4 + Math.random() * 6);
-        }
-        g.globalAlpha = 0.85;
-        g.fillStyle = '#b45309';
-        g.beginPath();
-        g.ellipse(170, 80, 18, 9, 0, 0, Math.PI * 2);
-        g.fill();
-      } else if (kind === 'earth') {
-        g.globalAlpha = 0.85;
-        for (let i = 0; i < 14; i++) {
-          g.fillStyle = i % 3 === 0 ? '#16a34a' : '#0284c7';
-          g.beginPath();
-          g.ellipse(Math.random() * 256, 20 + Math.random() * 88, 10 + Math.random() * 26, 6 + Math.random() * 14, Math.random() * Math.PI, 0, Math.PI * 2);
-          g.fill();
-        }
-        g.globalAlpha = 0.9;
-        g.fillStyle = '#f1f5f9';
-        g.fillRect(0, 0, 256, 7);
-        g.fillRect(0, 121, 256, 7);
-      } else {
-        // Rocky: craters and maria
-        for (let i = 0; i < 40; i++) {
-          g.globalAlpha = 0.25 + Math.random() * 0.35;
-          g.fillStyle = shade(hex, Math.random() > 0.5 ? -0.35 : 0.25);
-          g.beginPath();
-          g.arc(Math.random() * 256, Math.random() * 128, 2 + Math.random() * 9, 0, Math.PI * 2);
-          g.fill();
+      c.width = W; c.height = H;
+      const ctx = c.getContext('2d');
+      const img = ctx.createImageData(W, H);
+      const painter = ROCK_PAINTERS[paint] || ROCK_PAINTERS.moon;
+      for (let j = 0; j < H; j++) {
+        const lat = Math.PI / 2 - (j + 0.5) / H * Math.PI;
+        const cl = Math.cos(lat), y = Math.sin(lat);
+        for (let i = 0; i < W; i++) {
+          const lon = (i + 0.5) / W * Math.PI * 2 - Math.PI;
+          const col = painter(cl * Math.sin(lon), y, cl * Math.cos(lon), lat, lon);
+          const k = (j * W + i) * 4;
+          img.data[k] = col[0]; img.data[k + 1] = col[1]; img.data[k + 2] = col[2]; img.data[k + 3] = 255;
         }
       }
-      g.globalAlpha = 1;
-      return new THREE.CanvasTexture(c);
+      ctx.putImageData(img, 0, 0);
+      rockTextureCache[paint] = new THREE.CanvasTexture(c);
+      return rockTextureCache[paint];
     }
 
-    function makeLabel(text, color = '#e2e8f0', size = 11) {
+    function isSharedTexture(map) {
+      if (!map) return false;
+      if (map === glowTexture) return true;
+      if (earthTextures && (map === earthTextures.surface || map === earthTextures.clouds)) return true;
+      return Object.values(rockTextureCache).includes(map);
+    }
+
+    // Returns { group, mesh, gasMaterial } — group carries the axial tilt, mesh spins inside it
+    function makePlanet(b) {
+      const style = PLANET_STYLES[b.name] || { kind: 'rock', paint: 'moon', atmo: null, tilt: 0.3 };
+      const group = new THREE.Group();
+      group.rotation.order = 'YXZ'; // tilt the pole toward the camera first, then swing it sideways
+      group.rotation.x = style.tilt;
+      group.rotation.y = style.yaw || 0;
+      let mesh, gasMaterial = null;
+      if (style.kind === 'gas') {
+        const g = style.gas;
+        gasMaterial = new THREE.ShaderMaterial({
+          uniforms: {
+            time: { value: Math.random() * 100 },
+            c1: { value: new THREE.Color(g.c1) }, c2: { value: new THREE.Color(g.c2) }, c3: { value: new THREE.Color(g.c3) },
+            atmo: { value: new THREE.Color(style.atmo) },
+            spotColor: { value: new THREE.Color(g.spotColor || '#c45a3c') },
+            sunDir: { value: SUN_DIR },
+            bands: { value: g.bands }, turb: { value: g.turb }, flow: { value: g.flow }, spot: { value: g.spot }
+          },
+          vertexShader: GAS_VERTEX,
+          fragmentShader: GAS_FRAGMENT
+        });
+        mesh = new THREE.Mesh(new THREE.SphereGeometry(b.radius, 64, 48), gasMaterial);
+      } else {
+        const tex = getRockTexture(style.paint);
+        mesh = new THREE.Mesh(
+          new THREE.SphereGeometry(b.radius, 48, 32),
+          new THREE.MeshStandardMaterial({ map: tex, bumpMap: tex, bumpScale: 0.6, roughness: 0.95, metalness: 0 })
+        );
+      }
+      mesh.castShadow = true;
+      mesh.receiveShadow = style.kind !== 'gas';
+      group.add(mesh);
+
+      if (style.atmo) {
+        group.add(makeAtmosphere(b.radius * 1.02, style.atmo, false, 0.8));
+        group.add(makeAtmosphere(b.radius * 1.22, style.atmo, true, 0.9));
+      }
+
+      if (b.rings) {
+        // Banded rings with a Cassini-style gap, lying in the planet's equatorial plane
+        const ringCol = new THREE.Color(b.color).lerp(new THREE.Color('#fef3c7'), 0.55);
+        [[1.25, 1.55, 0.45], [1.6, 1.98, 0.7], [2.04, 2.3, 0.35]].forEach(([r0, r1, op]) => {
+          const ring = new THREE.Mesh(
+            new THREE.RingGeometry(b.radius * r0, b.radius * r1, 96),
+            new THREE.MeshStandardMaterial({ color: ringCol, transparent: true, opacity: op, side: THREE.DoubleSide, roughness: 0.9, depthWrite: false })
+          );
+          ring.rotation.x = -Math.PI / 2;
+          ring.receiveShadow = true;
+          group.add(ring);
+        });
+      }
+      return { group, mesh, gasMaterial };
+    }
+
+    // Object names are hidden by default to keep the scene clean; L toggles them (see .show-labels)
+    function makeLabel(text, color = '#e2e8f0', size = 11, objectLabel = true) {
       const div = document.createElement('div');
-      div.className = 'scene-label';
+      div.className = objectLabel ? 'scene-label object-label' : 'scene-label';
       div.textContent = text;
       div.style.color = color;
       div.style.fontSize = `${size}px`;
@@ -750,21 +1017,163 @@
       return line;
     }
 
-    function makePlanetMesh(data, kind) {
-      const mesh = new THREE.Mesh(
-        new THREE.SphereGeometry(data.radius, 48, 32),
-        new THREE.MeshStandardMaterial({
-          map: makePlanetTexture(data.color, kind),
-          roughness: 0.85,
-          metalness: 0.0,
-          emissive: new THREE.Color(data.color),
-          emissiveIntensity: 0.12
+    // ---------- Earth model (procedural, ported from the teammate canvas build) ----------
+    // 3D value noise sampled on the unit sphere, so the texture wraps with no seams
+    function noiseHash(x, y, z) {
+      let h = (x * 374761393 + y * 668265263 + z * 2147483647) | 0;
+      h = (h ^ (h >>> 13)) * 1274126177;
+      h = h ^ (h >>> 16);
+      return (h & 0xffff) / 0xffff;
+    }
+    function noise3(x, y, z) {
+      const sm = t => t * t * (3 - 2 * t);
+      const lerp = (a, b, t) => a + (b - a) * t;
+      const xi = Math.floor(x), yi = Math.floor(y), zi = Math.floor(z);
+      const xf = sm(x - xi), yf = sm(y - yi), zf = sm(z - zi);
+      const c = (dx, dy, dz) => noiseHash(xi + dx, yi + dy, zi + dz);
+      return lerp(
+        lerp(lerp(c(0, 0, 0), c(1, 0, 0), xf), lerp(c(0, 1, 0), c(1, 1, 0), xf), yf),
+        lerp(lerp(c(0, 0, 1), c(1, 0, 1), xf), lerp(c(0, 1, 1), c(1, 1, 1), xf), yf),
+        zf
+      );
+    }
+    function fbm(x, y, z, octaves) {
+      let v = 0, amp = 0.5, f = 1, norm = 0;
+      for (let i = 0; i < octaves; i++) {
+        v += noise3(x * f, y * f, z * f) * amp;
+        norm += amp;
+        amp *= 0.5;
+        f *= 2.03;
+      }
+      return v / norm;
+    }
+
+    // Equirectangular surface + separate cloud layer; built once and reused
+    let earthTextures = null;
+    function getEarthTextures() {
+      if (earthTextures) return earthTextures;
+      const W = 512, H = 256;
+      const surf = document.createElement('canvas');
+      const cloud = document.createElement('canvas');
+      surf.width = cloud.width = W;
+      surf.height = cloud.height = H;
+      const sImg = surf.getContext('2d').createImageData(W, H);
+      const cImg = cloud.getContext('2d').createImageData(W, H);
+      const lerp = (a, b, t) => a + (b - a) * t;
+      for (let j = 0; j < H; j++) {
+        const lat = Math.PI / 2 - (j + 0.5) / H * Math.PI;
+        const cl = Math.cos(lat), y = Math.sin(lat), alat = Math.abs(lat);
+        for (let i = 0; i < W; i++) {
+          const lon = (i + 0.5) / W * Math.PI * 2 - Math.PI;
+          const x = cl * Math.sin(lon), z = cl * Math.cos(lon);
+          const n = fbm(x * 2.2 + 11, y * 2.2, z * 2.2, 5);
+          let c;
+          if (alat > 1.22) c = [235, 242, 250];                                   // ice caps
+          else if (n > 0.53) {
+            const t = Math.min(1, (n - 0.53) * 6);
+            c = alat > 0.9 ? [150, 160, 140] : [lerp(64, 150, t), lerp(140, 120, t), lerp(60, 70, t)]; // land
+          } else {
+            const d = Math.min(1, (0.53 - n) * 5);
+            c = [lerp(40, 14, d), lerp(110, 50, d), lerp(190, 140, d)];          // ocean
+          }
+          const k = (j * W + i) * 4;
+          sImg.data[k] = c[0]; sImg.data[k + 1] = c[1]; sImg.data[k + 2] = c[2]; sImg.data[k + 3] = 255;
+          const cv = fbm(x * 3 + 40, y * 3, z * 3, 4);
+          cImg.data[k] = cImg.data[k + 1] = cImg.data[k + 2] = 255;
+          cImg.data[k + 3] = cv > 0.56 ? Math.min(0.85, (cv - 0.56) * 4) * 255 : 0;
+        }
+      }
+      surf.getContext('2d').putImageData(sImg, 0, 0);
+      cloud.getContext('2d').putImageData(cImg, 0, 0);
+      earthTextures = { surface: new THREE.CanvasTexture(surf), clouds: new THREE.CanvasTexture(cloud) };
+      return earthTextures;
+    }
+
+    // Fresnel atmosphere: inner rim tint (front faces) + soft outer halo (back faces)
+    function makeAtmosphere(radius, color, backSide, strength = 1) {
+      return new THREE.Mesh(
+        new THREE.SphereGeometry(radius, 48, 32),
+        new THREE.ShaderMaterial({
+          uniforms: { glowColor: { value: new THREE.Color(color).multiplyScalar(strength) } },
+          vertexShader: `
+            varying vec3 vNormal;
+            varying vec3 vView;
+            void main() {
+              vNormal = normalize(normalMatrix * normal);
+              vec4 mv = modelViewMatrix * vec4(position, 1.0);
+              vView = normalize(-mv.xyz);
+              gl_Position = projectionMatrix * mv;
+            }`,
+          fragmentShader: backSide ? `
+            uniform vec3 glowColor;
+            varying vec3 vNormal;
+            varying vec3 vView;
+            void main() {
+              // Back faces: -dot is 0 at the halo's outer edge and grows toward the planet's limb,
+              // so the glow is strongest next to the planet and fades smoothly to nothing
+              float x = clamp(-dot(vNormal, vView), 0.0, 1.0);
+              float a = pow(x, 2.0) * 1.5;
+              gl_FragColor = vec4(glowColor, a);
+            }` : `
+            uniform vec3 glowColor;
+            varying vec3 vNormal;
+            varying vec3 vView;
+            void main() {
+              float rim = 1.0 - max(dot(vNormal, vView), 0.0);
+              gl_FragColor = vec4(glowColor, pow(rim, 3.0) * 0.9);
+            }`,
+          side: backSide ? THREE.BackSide : THREE.FrontSide,
+          blending: THREE.AdditiveBlending,
+          transparent: true,
+          depthWrite: false
         })
       );
-      mesh.rotation.x = Math.PI / 2; // poles point out of the orbital plane
-      mesh.castShadow = true;
-      mesh.receiveShadow = true;
-      return mesh;
+    }
+
+    function makeEarth(data) {
+      const tex = getEarthTextures();
+      const r = data.radius;
+      const globe = new THREE.Group();
+      globe.rotation.z = 0.41; // axial tilt
+      const surface = new THREE.Mesh(
+        new THREE.SphereGeometry(r, 64, 48),
+        new THREE.MeshStandardMaterial({ map: tex.surface, roughness: 0.75, metalness: 0.0, emissive: 0x0b2440, emissiveIntensity: 0.35 })
+      );
+      surface.castShadow = true;
+      surface.receiveShadow = true;
+      const clouds = new THREE.Mesh(
+        new THREE.SphereGeometry(r * 1.025, 64, 48),
+        new THREE.MeshStandardMaterial({ map: tex.clouds, transparent: true, depthWrite: false, roughness: 1 })
+      );
+      globe.add(surface, clouds);
+      globe.add(makeAtmosphere(r * 1.03, '#6eb4ff', false));
+      globe.add(makeAtmosphere(r * 1.28, '#5aa8ff', true));
+      return { globe, surface, clouds };
+    }
+
+    // ---------- Relay station (ported from the teammate mesh: core, solar wings, boom, beacon) ----------
+    function makeStation(color, scale) {
+      const g = new THREE.Group();
+      const part = (w, h, d, x, y, z, col, emissive) => {
+        const m = new THREE.Mesh(
+          new THREE.BoxGeometry(w, h, d),
+          new THREE.MeshStandardMaterial({ color: col, roughness: 0.45, metalness: 0.55, emissive: col, emissiveIntensity: emissive })
+        );
+        m.position.set(x, y, z);
+        m.castShadow = true;
+        g.add(m);
+        return m;
+      };
+      // Axes: x across, y along the boom, z out of the orbital plane (toward a TOP camera)
+      part(1.1, 1.1, 1.1, 0, 0, 0, 0xdce4ec, 0.2);           // core
+      part(1.8, 0.8, 0.08, 1.6, 0, 0, 0x286edc, 0.35);       // solar wing
+      part(1.8, 0.8, 0.08, -1.6, 0, 0, 0x286edc, 0.35);      // solar wing
+      part(0.36, 1.6, 0.36, 0, 1.4, 0, 0xc8d2dc, 0.1);       // docking boom
+      const beacon = part(0.24, 0.24, 0.7, 0, 0, 0.9, new THREE.Color(color).getHex(), 1.0); // beacon light
+      g.scale.setScalar(scale);
+      g.rotation.order = 'ZXY'; // rotation.z spins it about the plane normal; x is a fixed tilt
+      g.rotation.x = 0.3;
+      return { station: g, beacon };
     }
 
     function makeDynamicLine(maxPoints, material, withColors = false) {
@@ -909,29 +1318,63 @@
       probeGroup.visible = false;
       scene.add(probeGroup);
 
-      // Fading flight trail
+      // Flight trail: brightens toward the probe; keeps the whole flight
       trailLine = makeDynamicLine(probe.maxTrail, new THREE.LineBasicMaterial({
         vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false
       }), true);
       scene.add(trailLine);
 
-      // Predictive trajectory (dashed)
-      predLine = makeDynamicLine(PREDICTION_STEPS + 2, new THREE.LineDashedMaterial({
-        color: 0x38bdf8, dashSize: 5, gapSize: 6, transparent: true, opacity: 0.95, depthWrite: false
+      // Ghost of the previous flight (faint dashed grey) to compare attempts
+      ghostLine = makeDynamicLine(probe.maxTrail, new THREE.LineDashedMaterial({
+        color: 0x94a3b8, dashSize: 4, gapSize: 5, transparent: true, opacity: 0.3, depthWrite: false
       }));
-      predLine.geometry.setAttribute('lineDistance', new THREE.BufferAttribute(new Float32Array(PREDICTION_STEPS + 2), 1));
-      scene.add(predLine);
+      ghostLine.geometry.setAttribute('lineDistance', new THREE.BufferAttribute(new Float32Array(probe.maxTrail), 1));
+      scene.add(ghostLine);
 
-      predEnd = new THREE.Mesh(new THREE.SphereGeometry(3, 10, 8), new THREE.MeshBasicMaterial({ color: 0x38bdf8 }));
+      // Predicted path: glowing dots that fade along the path
+      const predGeo = new THREE.BufferGeometry();
+      predGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(PRED_DOTS * 3), 3));
+      predGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(PRED_DOTS * 3), 3));
+      predGeo.setDrawRange(0, 0);
+      predPoints = new THREE.Points(predGeo, new THREE.PointsMaterial({
+        size: 13, map: glowTexture, vertexColors: true, transparent: true,
+        blending: THREE.AdditiveBlending, depthWrite: false
+      }));
+      predPoints.frustumCulled = false;
+      scene.add(predPoints);
+
+      // Outcome marker at the end of the prediction: green ring / red X / grey dot
+      predEnd = new THREE.Group();
+      const ring = makeCircleLine(9, 0x34d399, 1, false);
+      const xMat = new THREE.LineBasicMaterial({ color: 0xf43f5e });
+      const xGeo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(-8, -8, 0), new THREE.Vector3(8, 8, 0),
+        new THREE.Vector3(8, -8, 0), new THREE.Vector3(-8, 8, 0)
+      ]);
+      const cross = new THREE.LineSegments(xGeo, xMat);
+      const missDot = new THREE.Mesh(new THREE.SphereGeometry(3, 10, 8), new THREE.MeshBasicMaterial({ color: 0x94a3b8 }));
+      predEnd.add(ring, cross, missDot);
+      predEnd.userData = { ring, cross, missDot };
       predEnd.visible = false;
       scene.add(predEnd);
+
+      // Launch arrow from Earth's surface: direction = aim, length = power
+      aimArrow = new THREE.Group();
+      const arrowMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.95 });
+      const shaft = new THREE.Mesh(new THREE.BoxGeometry(1, 3, 1.5), arrowMat);
+      const head = new THREE.Mesh(new THREE.ConeGeometry(6, 12, 12), arrowMat);
+      head.rotation.z = -Math.PI / 2; // cone points +X
+      aimArrow.add(shaft, head);
+      aimArrow.userData = { shaft, head };
+      aimArrow.visible = false;
+      scene.add(aimArrow);
 
       // Slingshot rubber band + pull reticle
       cordLine = makeDynamicLine(2, new THREE.LineBasicMaterial({ color: 0xf43f5e, transparent: true, opacity: 0.85 }));
       scene.add(cordLine);
       reticle = new THREE.Mesh(new THREE.SphereGeometry(6, 14, 10), new THREE.MeshBasicMaterial({ color: 0xf43f5e }));
       reticle.visible = false;
-      aimLabel = makeLabel('', '#f43f5e', 12);
+      aimLabel = makeLabel('', '#f43f5e', 12, false);
       aimLabel.position.set(40, 14, 0);
       reticle.add(aimLabel);
       scene.add(reticle);
@@ -960,7 +1403,8 @@
           if (o.isCSS2DObject && o.element.parentNode) o.element.parentNode.removeChild(o.element);
           if (o.geometry) o.geometry.dispose();
           if (o.material) {
-            if (o.material.map) o.material.map.dispose();
+            const map = o.material.map;
+            if (map && !isSharedTexture(map)) map.dispose();
             o.material.dispose();
           }
         });
@@ -970,13 +1414,13 @@
     function buildLevelScene() {
       clearLevelGroup();
       const lvl = currentLevel;
-      levelObjects = { earth: null, aimRing: null, bodies: [], target: null, targetRing: null, targetCore: null, beacons: [], hazards: [] };
+      levelObjects = { earth: null, aimRing: null, bodies: [], target: null, targetRing: null, targetCore: null, beacons: [], hazards: [], gasMaterials: [] };
 
       // Earth (launch base)
       const earthGroup = new THREE.Group();
-      const earthMesh = makePlanetMesh(lvl.earth, 'earth');
-      earthGroup.add(earthMesh);
-      earthGroup.add(makeGlowSprite('#38bdf8', lvl.earth.radius * 3.4, 0.55));
+      const earth = makeEarth(lvl.earth);
+      earthGroup.add(earth.globe);
+      earthGroup.add(makeGlowSprite('#38bdf8', lvl.earth.radius * 3.0, 0.3));
       const earthLabel = makeLabel('EARTH (BASE)', '#bae6fd');
       earthLabel.position.set(0, -(lvl.earth.radius + 16), 0);
       earthGroup.add(earthLabel);
@@ -984,27 +1428,17 @@
       earthGroup.add(aimRing);
       earthGroup.position.copy(toScene(getCoords(lvl.earth).x, getCoords(lvl.earth).y));
       levelGroup.add(earthGroup);
-      levelObjects.earth = { group: earthGroup, mesh: earthMesh };
+      levelObjects.earth = { group: earthGroup, mesh: earth.surface, clouds: earth.clouds };
       levelObjects.aimRing = aimRing;
 
       // Celestial bodies with gravity well contours and orbit tracks
       lvl.bodies.forEach(b => {
         const group = new THREE.Group();
-        const mesh = makePlanetMesh(b, b.texture || 'rocky');
-        group.add(mesh);
-        if (b.rings) {
-          const ring = new THREE.Mesh(
-            new THREE.RingGeometry(b.radius * 1.35, b.radius * 2.1, 64),
-            new THREE.MeshStandardMaterial({
-              color: new THREE.Color(b.color).lerp(new THREE.Color('#fef3c7'), 0.5),
-              transparent: true, opacity: 0.55, side: THREE.DoubleSide, roughness: 0.9, depthWrite: false
-            })
-          );
-          ring.rotation.x = 0.45; // tilted so the 3D views show it as an ellipse
-          ring.castShadow = true;
-          group.add(ring);
-        }
-        group.add(makeGlowSprite(b.color, b.radius * 3.2, 0.5));
+        const planet = makePlanet(b);
+        const mesh = planet.mesh;
+        group.add(planet.group);
+        if (planet.gasMaterial) levelObjects.gasMaterials.push(planet.gasMaterial);
+        group.add(makeGlowSprite(b.color, b.radius * 3.6, 0.3));
         for (let ring = 1; ring <= 3; ring++) {
           group.add(makeCircleLine(b.radius + ring * 28, 0x38bdf8, 0.32 / ring, true));
         }
@@ -1032,12 +1466,18 @@
         new THREE.MeshBasicMaterial({ map: glowTexture, color: new THREE.Color(t.color), transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false })
       );
       tGroup.add(disc);
-      const tCore = new THREE.Mesh(
-        new THREE.SphereGeometry(t.radius * 0.45, 20, 14),
-        new THREE.MeshStandardMaterial({ color: t.color, emissive: new THREE.Color(t.color), emissiveIntensity: 0.8 })
-      );
-      tGroup.add(tCore);
-      tGroup.add(makeGlowSprite(t.color, t.radius * 2.6, 0.7));
+      const tInner = makeCircleLine(t.captureRadius * 0.6, new THREE.Color(t.color), 0.35, true, 2, 5);
+      tGroup.add(tInner);
+      // A relay station sits in open space; when the target is a planet's orbit (Mars) the planet is the centrepiece
+      const onPlanet = lvl.bodies.some(b => !b.orbitCenter && Math.hypot(b.x - t.x, b.y - t.y) < 0.01);
+      let tCore = null, tBeacon = null;
+      if (!onPlanet) {
+        const st = makeStation(t.color, t.radius * 0.7);
+        tCore = st.station;
+        tBeacon = st.beacon;
+        tGroup.add(tCore);
+        tGroup.add(makeGlowSprite(t.color, t.radius * 3.4, 0.55));
+      }
       const tLabel = makeLabel(t.name.toUpperCase(), '#6ee7b7', 10);
       tLabel.position.set(0, t.captureRadius + 10, 0);
       tGroup.add(tLabel);
@@ -1045,7 +1485,9 @@
       levelGroup.add(tGroup);
       levelObjects.target = tGroup;
       levelObjects.targetRing = tRing;
+      levelObjects.targetInner = tInner;
       levelObjects.targetCore = tCore;
+      levelObjects.targetBeacon = tBeacon;
 
       // Hazards: lumpy faceted asteroids
       lvl.hazards.forEach(hz => {
@@ -1061,20 +1503,31 @@
           pos.setXYZ(i, v.x, v.y, v.z);
         }
         geo.computeVertexNormals();
-        const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: hz.color, roughness: 0.95, flatShading: true }));
+        const rockTex = getRockTexture('asteroid');
+        const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({
+          color: '#b8aea4', map: rockTex, bumpMap: rockTex, bumpScale: 0.8, roughness: 0.95, flatShading: true
+        }));
         mesh.castShadow = true;
         mesh.receiveShadow = true;
         mesh.rotation.set(Math.random() * 3, Math.random() * 3, 0);
-        const p = getCoords(hz);
-        mesh.position.copy(toScene(p.x, p.y));
-        levelGroup.add(mesh);
+        const group = new THREE.Group();
+        group.add(mesh);
+        const p = getBodyPos(hz);
+        group.position.copy(toScene(p.x, p.y));
+        levelGroup.add(group);
 
         if (!hz.hideLabel) {
           const label = makeLabel(hz.name, '#a8a29e', 9);
-          label.position.copy(toScene(p.x, p.y + hz.radius + 12));
-          levelGroup.add(label);
+          label.position.set(0, -(hz.radius + 12), 0);
+          group.add(label);
         }
-        levelObjects.hazards.push({ mesh, spin: 0.2 + Math.random() * 0.5 });
+        // Patrolling asteroids show their path so players can time a gap
+        if (hz.orbitCenter) {
+          const track = makeCircleLine(hz.orbitRadius, 0xf87171, 0.18, true, 3, 6);
+          track.position.copy(toScene(hz.orbitCenter.x * WORLD_W, hz.orbitCenter.y * WORLD_H));
+          levelGroup.add(track);
+        }
+        levelObjects.hazards.push({ data: hz, group, mesh, spin: 0.2 + Math.random() * 0.5 });
       });
 
       // Science beacons
@@ -1088,11 +1541,13 @@
         const glow = makeGlowSprite('#facc15', 34, 0.6);
         const label = makeLabel(`BEACON ${idx + 1}`, '#fde047', 9);
         label.position.set(0, 18, 0);
-        group.add(mesh, glow, label);
+        // Pickup ring: dim gold normally, bright cyan when the predicted path will collect it
+        const pickup = makeCircleLine(probe.radius + 14, 0xfacc15, 0.35, false);
+        group.add(mesh, glow, label, pickup);
         const p = getCoords(bc);
         group.position.copy(toScene(p.x, p.y));
         levelGroup.add(group);
-        levelObjects.beacons.push({ data: bc, mesh, glow, label, phase: idx });
+        levelObjects.beacons.push({ data: bc, mesh, glow, label, pickup, phase: idx });
       });
     }
 
@@ -1231,12 +1686,18 @@
       renderLevelBar();
       renderMissionLog();
       buildLevelScene();
+      cancelAutopilot();
+      aim = { set: false, angle: 0, power: 0 };
+      probe.trail = [];
+      ghostTrail = [];
       resetProbeToEarth();
       document.getElementById('victoryModal').classList.add('hidden');
     }
 
     function resetProbeToEarth() {
       const earthPos = getCoords(currentLevel.earth);
+      // Keep the last flight as a faint ghost path; the aim is kept so the shot can be tweaked
+      if (probe.trail.length > 1) ghostTrail = probe.trail;
       probe.x = earthPos.x;
       probe.y = earthPos.y;
       probe.vx = 0;
@@ -1300,7 +1761,7 @@
     }
 
     // --- REAL-TIME TRAJECTORY PREDICTION ---
-    function calculatePredictiveTrajectory(startX, startY, initVx, initVy) {
+    function calculatePredictiveTrajectory(startX, startY, initVx, initVy, maxSteps = PREDICTION_STEPS, aheadTicks = 0, keepPoints = true) {
       const points = [];
       let simX = startX;
       let simY = startY;
@@ -1310,13 +1771,19 @@
       points.push({ x: simX, y: simY });
 
       // Advance orbiting moons in lockstep with the flight (one orbit tick per physics step),
-      // then restore them, so the preview matches what will actually happen
-      const savedAngles = currentLevel.bodies.map(b => b.angle);
+      // then restore them, so the preview matches what will actually happen.
+      // aheadTicks shifts the start, to predict a launch that happens later (autopilot launch windows).
+      const movers = orbiters();
+      const savedAngles = movers.map(o => o.angle);
+      advanceOrbits(aheadTicks);
 
-      for (let step = 0; step < PREDICTION_STEPS; step++) {
-        currentLevel.bodies.forEach(b => {
-          if (b.orbitCenter && b.orbitSpeed) b.angle = (b.angle || 0) + b.orbitSpeed;
-        });
+      let end = 'miss', reason = '';
+      const hits = new Set(); // indices of beacons this path collects
+      const earthPos = getCoords(currentLevel.earth);
+      const tgtPos = getCoords(currentLevel.target);
+
+      for (let step = 0; step < maxSteps; step++) {
+        advanceOrbits(1);
 
         // Gravitational step
         const grav = calculateGravityAt(simX, simY);
@@ -1325,44 +1792,47 @@
         simX += simVx * TIME_STEP;
         simY += simVy * TIME_STEP;
 
-        points.push({ x: simX, y: simY });
+        if (keepPoints) points.push({ x: simX, y: simY });
+
+        currentLevel.beacons.forEach((bc, i) => {
+          if (bc.collected || hits.has(i)) return;
+          const bp = getCoords(bc);
+          if (Math.hypot(simX - bp.x, simY - bp.y) < probe.radius + 14) hits.add(i);
+        });
 
         // Check if path collides with Earth
-        const earthPos = getCoords(currentLevel.earth);
-        const dEarth = Math.hypot(earthPos.x - simX, earthPos.y - simY);
-        if (step > 4 && dEarth <= currentLevel.earth.radius) break;
+        if (step > 4 && Math.hypot(earthPos.x - simX, earthPos.y - simY) <= currentLevel.earth.radius) {
+          end = 'crash'; reason = 'Earth impact'; break;
+        }
 
         // Check if path collides with planets
-        let collided = false;
-        for (const b of currentLevel.bodies) {
+        const body = currentLevel.bodies.find(b => {
           const bPos = getBodyPos(b);
-          if (Math.hypot(bPos.x - simX, bPos.y - simY) <= b.radius) {
-            collided = true;
-            break;
-          }
-        }
-        if (collided) break;
+          return Math.hypot(bPos.x - simX, bPos.y - simY) <= b.radius;
+        });
+        if (body) { end = 'crash'; reason = `Impact on ${body.name}`; break; }
 
         // Check if path collides with hazards
-        if (currentLevel.hazards.some(hz => {
-          const hzPos = getCoords(hz);
-          return Math.hypot(hzPos.x - simX, hzPos.y - simY) <= hz.radius + probe.radius;
-        })) break;
+        const hz = currentLevel.hazards.find(h => {
+          const hzPos = getBodyPos(h);
+          return Math.hypot(hzPos.x - simX, hzPos.y - simY) <= h.radius + probe.radius;
+        });
+        if (hz) { end = 'crash'; reason = `Collision with ${hz.name}`; break; }
 
-        // Check target encounter
-        const tgtPos = getCoords(currentLevel.target);
+        // Check target encounter (same speed limit as the real capture)
         if (Math.hypot(tgtPos.x - simX, tgtPos.y - simY) <= currentLevel.target.captureRadius) {
-          // Path reached target envelope
-          break;
+          if (Math.hypot(simVx, simVy) < 14) { end = 'capture'; break; }
+          end = 'fast'; reason = 'Too fast to capture';
         }
 
         // Check out of bounds
         if (simX < -150 || simX > WORLD_W + 150 || simY < -150 || simY > WORLD_H + 150) {
-          break;
+          end = 'miss'; reason = 'Drifts out of the system'; break;
         }
       }
-      currentLevel.bodies.forEach((b, i) => { b.angle = savedAngles[i]; });
-      return points;
+      movers.forEach((o, i) => { o.angle = savedAngles[i]; });
+      if (!keepPoints) points.push({ x: simX, y: simY });
+      return { points, end, reason, hits };
     }
 
     // --- PARTICLES & FX ---
@@ -1417,12 +1887,9 @@
 
     // --- GAME LOOP & UPDATES ---
     function updateGame(dt) {
-      // 1. Orbit animation for planetary moons
-      currentLevel.bodies.forEach(b => {
-        if (b.orbitCenter && b.orbitSpeed) {
-          b.angle = (b.angle || 0) + b.orbitSpeed;
-        }
-      });
+      tickCount++;
+      // 1. Orbit animation for moons and patrolling asteroids
+      advanceOrbits(1);
 
       // 2. Flight Dynamics
       if (gameState === 'FLYING' && probe.alive) {
@@ -1488,7 +1955,7 @@
 
         // Check Collision: Hazards (Asteroids/Debris)
         currentLevel.hazards.forEach(hz => {
-          const hzPos = getCoords(hz);
+          const hzPos = getBodyPos(hz);
           if (Math.hypot(probe.x - hzPos.x, probe.y - hzPos.y) <= hz.radius + probe.radius) {
             triggerCrash(`Destroyed by collision with ${hz.name}!`);
           }
@@ -1604,13 +2071,25 @@
 
     // --- SCENE SYNC (replaces 2D drawGame) ---
     function getAimVector() {
-      const pullDx = dragStart.x - dragCurrent.x;
-      const pullDy = dragStart.y - dragCurrent.y;
-      const pullDist = Math.hypot(pullDx, pullDy);
-      const clampedPull = Math.min(pullDist, MAX_LAUNCH_PULL);
-      const angle = Math.atan2(pullDy, pullDx);
-      const thrustPower = (clampedPull / MAX_LAUNCH_PULL) * MAX_DELTA_V;
-      return { pullDist, thrustPower, angle, vx: Math.cos(angle) * thrustPower, vy: Math.sin(angle) * thrustPower };
+      const thrustPower = aim.power * MAX_DELTA_V;
+      return { thrustPower, angle: aim.angle, vx: Math.cos(aim.angle) * thrustPower, vy: Math.sin(aim.angle) * thrustPower };
+    }
+
+    // Slingshot: pulling back from Earth to point p aims the opposite way, harder the further you pull
+    function setAimFromPoint(p) {
+      const e = getCoords(currentLevel.earth);
+      const dx = e.x - p.x, dy = e.y - p.y;
+      const dist = Math.hypot(dx, dy);
+      aim.angle = Math.atan2(dy, dx);
+      aim.power = Math.min(dist, MAX_LAUNCH_PULL) / MAX_LAUNCH_PULL;
+      aim.set = aim.power >= MIN_AIM_POWER;
+    }
+
+    // Where the slingshot cord would be pulled to for the current aim
+    function aimDragPoint() {
+      const e = getCoords(currentLevel.earth);
+      const pull = aim.power * MAX_LAUNCH_PULL;
+      return { x: e.x - Math.cos(aim.angle) * pull, y: e.y - Math.sin(aim.angle) * pull };
     }
 
     // Probe leaves from Earth's surface along the launch heading, not from its centre
@@ -1630,22 +2109,40 @@
         o.mesh.rotation.y += dt * 0.35;
       });
       levelObjects.earth.mesh.rotation.y += dt * 0.25;
+      levelObjects.earth.clouds.rotation.y += dt * 0.33; // clouds drift slightly faster than the surface
 
       // Earth prompt ring pulses while waiting for input
       const aimRing = levelObjects.aimRing;
-      aimRing.visible = gameState === 'AIMING' && !isAiming;
+      aimRing.visible = gameState === 'AIMING' && !aim.set;
       const pulse = 1 + Math.sin(now * 0.006) * 4 / (currentLevel.earth.radius + 10);
       aimRing.scale.set(pulse, pulse, 1);
 
-      levelObjects.targetRing.rotation.z += dt * 0.25;
-      levelObjects.targetCore.scale.setScalar(1 + Math.sin(t * 3) * 0.12);
+      // Capture zone: outer ring pulses and turns one way, inner ring the other
+      const tp = 1 + Math.sin(t * 3) * 0.03;
+      levelObjects.targetRing.scale.set(tp, tp, 1);
+      levelObjects.targetRing.rotation.z -= dt * 0.35;
+      levelObjects.targetInner.rotation.z += dt * 0.5;
+      if (levelObjects.targetCore) {
+        levelObjects.targetCore.rotation.z = t * 0.5;
+        levelObjects.targetBeacon.material.emissiveIntensity = 0.6 + 0.6 * Math.max(0, Math.sin(t * 4));
+      }
+
+      levelObjects.gasMaterials.forEach(m => { m.uniforms.time.value += dt; });
 
       levelObjects.hazards.forEach(h => {
+        if (h.data.orbitCenter) {
+          const p = getBodyPos(h.data);
+          h.group.position.copy(toScene(p.x, p.y));
+        }
         h.mesh.rotation.x += dt * h.spin;
         h.mesh.rotation.y += dt * h.spin * 0.7;
       });
 
-      levelObjects.beacons.forEach(b => {
+      levelObjects.beacons.forEach((b, i) => {
+        const willHit = gameState === 'AIMING' && prediction && prediction.hits.has(i);
+        b.pickup.visible = !b.data.collected;
+        b.pickup.material.color.set(willHit ? 0x38bdf8 : 0xfacc15);
+        b.pickup.material.opacity = willHit ? 0.95 : 0.35;
         if (b.data.collected) {
           b.mesh.material.opacity = 0.15;
           b.mesh.scale.setScalar(0.6);
@@ -1662,48 +2159,87 @@
         }
       });
 
-      // Slingshot aim + predictive trajectory
-      const showAim = gameState === 'AIMING' && isAiming;
-      predLine.visible = cordLine.visible = reticle.visible = predEnd.visible = aimLabel.visible = showAim;
+      // Aim: launch arrow, slingshot cord while dragging, and the predicted path
+      const showAim = gameState === 'AIMING' && aim.set;
+      const dragging = showAim && isAiming;
+      predPoints.visible = predEnd.visible = aimArrow.visible = showAim;
+      cordLine.visible = reticle.visible = aimLabel.visible = dragging;
+      prediction = null;
       if (showAim) {
         const earthPos = getCoords(currentLevel.earth);
-        const aim = getAimVector();
+        const av = getAimVector();
 
-        const cordArr = cordLine.geometry.attributes.position.array;
-        writeScene(cordArr, 0, earthPos.x, earthPos.y);
-        writeScene(cordArr, 1, dragCurrent.x, dragCurrent.y);
-        cordLine.geometry.attributes.position.needsUpdate = true;
-        cordLine.geometry.setDrawRange(0, 2);
+        // Arrow from Earth's surface; length shows power
+        const len = 12 + aim.power * 60;
+        const base = getLaunchPoint(aim.angle);
+        aimArrow.position.copy(toScene(base.x, base.y, 2));
+        aimArrow.rotation.z = -aim.angle;
+        aimArrow.userData.shaft.scale.x = len;
+        aimArrow.userData.shaft.position.x = len / 2;
+        aimArrow.userData.head.position.x = len + 5;
 
-        reticle.position.copy(toScene(dragCurrent.x, dragCurrent.y));
-        aimLabel.element.textContent = `Δv: ${aim.thrustPower.toFixed(1)} km/s`;
-
-        const lp = getLaunchPoint(aim.angle);
-        const pts = calculatePredictiveTrajectory(lp.x, lp.y, aim.vx, aim.vy);
-        const n = Math.min(pts.length, PREDICTION_STEPS + 2);
-        const arr = predLine.geometry.attributes.position.array;
-        const dist = predLine.geometry.attributes.lineDistance.array;
-        let acc = 0;
-        for (let i = 0; i < n; i++) {
-          writeScene(arr, i, pts[i].x, pts[i].y);
-          if (i > 0) acc += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
-          dist[i] = acc;
+        if (dragging) {
+          const dp = aimDragPoint();
+          const cordArr = cordLine.geometry.attributes.position.array;
+          writeScene(cordArr, 0, earthPos.x, earthPos.y);
+          writeScene(cordArr, 1, dp.x, dp.y);
+          cordLine.geometry.attributes.position.needsUpdate = true;
+          cordLine.geometry.setDrawRange(0, 2);
+          reticle.position.copy(toScene(dp.x, dp.y));
+          aimLabel.element.textContent = `Δv: ${av.thrustPower.toFixed(1)} km/s`;
         }
-        predLine.geometry.attributes.position.needsUpdate = true;
-        predLine.geometry.attributes.lineDistance.needsUpdate = true;
-        predLine.geometry.setDrawRange(0, n);
-        const last = pts[n - 1];
-        predEnd.position.copy(toScene(last.x, last.y));
+
+        // While the autopilot waits for its launch window, preview the path from that future moment
+        const ahead = autopilot && autopilot.phase === 'wait' ? Math.max(0, autopilot.launchTick - tickCount) : 0;
+        prediction = calculatePredictiveTrajectory(base.x, base.y, av.vx, av.vy, PREDICTION_STEPS, ahead);
+        const pts = prediction.points;
+
+        // Glowing dots on every other point, fading toward the end of the path
+        const pArr = predPoints.geometry.attributes.position.array;
+        const cArr = predPoints.geometry.attributes.color.array;
+        const cyan = cachedColor('#38bdf8');
+        let n = 0;
+        for (let i = 1; i < pts.length && n < PRED_DOTS; i += 2, n++) {
+          writeScene(pArr, n, pts[i].x, pts[i].y);
+          const f = 1 - i / pts.length;
+          const a = 0.25 + 0.75 * f;
+          cArr[n * 3] = cyan.r * a; cArr[n * 3 + 1] = cyan.g * a; cArr[n * 3 + 2] = cyan.b * a;
+        }
+        predPoints.geometry.attributes.position.needsUpdate = true;
+        predPoints.geometry.attributes.color.needsUpdate = true;
+        predPoints.geometry.setDrawRange(0, n);
+
+        // Outcome marker: pulsing green ring = capture, red X = crash, grey dot = miss
+        const last = pts[pts.length - 1];
+        predEnd.position.copy(toScene(last.x, last.y, 1));
+        const { ring, cross, missDot } = predEnd.userData;
+        ring.visible = prediction.end === 'capture';
+        cross.visible = prediction.end === 'crash';
+        missDot.visible = !ring.visible && !cross.visible;
+        ring.scale.setScalar(1 + Math.sin(t * 6) * 0.15);
       }
 
-      // Flight trail with fading vertex colours
+      // Ghost of the previous flight
+      const gPos = ghostLine.geometry.attributes.position.array;
+      const gDist = ghostLine.geometry.attributes.lineDistance.array;
+      let gAcc = 0;
+      for (let i = 0; i < ghostTrail.length; i++) {
+        writeScene(gPos, i, ghostTrail[i].x, ghostTrail[i].y);
+        if (i > 0) gAcc += Math.hypot(ghostTrail[i].x - ghostTrail[i - 1].x, ghostTrail[i].y - ghostTrail[i - 1].y);
+        gDist[i] = gAcc;
+      }
+      ghostLine.geometry.attributes.position.needsUpdate = true;
+      ghostLine.geometry.attributes.lineDistance.needsUpdate = true;
+      ghostLine.geometry.setDrawRange(0, ghostTrail.length > 1 ? ghostTrail.length : 0);
+
+      // Live flight trail, brightening toward the probe
       const trail = probe.trail;
       const tPos = trailLine.geometry.attributes.position.array;
       const tCol = trailLine.geometry.attributes.color.array;
       const trailColor = cachedColor('#38bdf8');
       for (let i = 0; i < trail.length; i++) {
         writeScene(tPos, i, trail[i].x, trail[i].y);
-        const a = (i / trail.length) * 0.85;
+        const a = 0.15 + 0.85 * (i / trail.length);
         tCol[i * 3] = trailColor.r * a;
         tCol[i * 3 + 1] = trailColor.g * a;
         tCol[i * 3 + 2] = trailColor.b * a;
@@ -1807,8 +2343,10 @@
       const dt = Math.min((now - lastTime) / 1000, 0.1);
       lastTime = now;
 
+      updateAutopilot();
       updateGame(dt);
       syncScene(now, dt);
+      updateAimPanel();
       updateCamera(dt);
       renderer.render(scene, camera);
       labelRenderer.render(scene, camera);
@@ -1840,11 +2378,9 @@
 
       // Start drag if clicking reasonably near Earth
       if (dist <= currentLevel.earth.radius * 2.5) {
+        cancelAutopilot();
         isAiming = true;
-        dragStart.x = earthPos.x;
-        dragStart.y = earthPos.y;
-        dragCurrent.x = w.x;
-        dragCurrent.y = w.y;
+        setAimFromPoint(w);
       }
     }
 
@@ -1852,33 +2388,252 @@
       if (!isAiming) return;
       const w = screenToWorld(clientX, clientY);
       if (!w) return;
-      dragCurrent.x = w.x;
-      dragCurrent.y = w.y;
+      setAimFromPoint(w);
     }
 
     function handlePointerUp() {
       if (!isAiming) return;
       isAiming = false;
+      // Quick mode launches on release; precise mode waits for LAUNCH / Space
+      if (!precise) launch();
+    }
 
-      const aim = getAimVector();
+    function launch() {
+      if (gameState !== 'AIMING' || !aim.set) return;
+      const av = getAimVector();
+      const lp = getLaunchPoint(av.angle);
+      probe.x = lp.x;
+      probe.y = lp.y;
+      probe.vx = av.vx;
+      probe.vy = av.vy;
+      probe.trail = [{ x: probe.x, y: probe.y }];
+      probe.alive = true;
+      launchDeltaVUsed = av.thrustPower;
+      chaseDir.set(av.vx, -av.vy, 0).normalize();
 
-      // Minimal pull threshold to prevent accidental taps
-      if (aim.pullDist > 16) {
-        const lp = getLaunchPoint(aim.angle);
-        probe.x = lp.x;
-        probe.y = lp.y;
-        probe.vx = aim.vx;
-        probe.vy = aim.vy;
-        probe.trail = [{ x: probe.x, y: probe.y }];
-        probe.alive = true;
-        launchDeltaVUsed = aim.thrustPower;
-        chaseDir.set(aim.vx, -aim.vy, 0).normalize();
+      gameState = 'FLYING';
+      sfx.playLaunch();
+      spawnThrustParticles(probe.x, probe.y, probe.vx, probe.vy, 18, '#38bdf8');
+      document.getElementById('hintText').textContent = "Probe in flight! Monitoring orbital telemetry & gravitational forces...";
+    }
 
-        gameState = 'FLYING';
-        sfx.playLaunch();
-        spawnThrustParticles(probe.x, probe.y, probe.vx, probe.vy, 18, '#38bdf8');
-        document.getElementById('hintText').textContent = "Probe in flight! Monitoring orbital telemetry & gravitational forces...";
+    // --- AUTOPILOT: searches launch angle/power for the best route at an upcoming launch window ---
+    const AUTOPILOT_LEAD_TICKS = 180;   // launch window opens this many frames after the search starts
+    const AUTOPILOT_FLIGHT_STEPS = 3000;
+
+    function scoreShot(angle, power, ahead) {
+      const tp = power * MAX_DELTA_V;
+      const lp = getLaunchPoint(angle);
+      const r = calculatePredictiveTrajectory(lp.x, lp.y, Math.cos(angle) * tp, Math.sin(angle) * tp, AUTOPILOT_FLIGHT_STEPS, ahead, false);
+      if (r.end !== 'capture') return -1;
+      return r.hits.size * 10 + (1 - power); // most beacons first, then least fuel
+    }
+
+    const AUTOPILOT_WINDOWS = 8;        // compare this many upcoming launch windows (stops early on a perfect route)...
+    const AUTOPILOT_WINDOW_GAP = 120;   // ...spaced this many frames apart
+
+    function coarseShots() {
+      const shots = [];
+      for (let d = 0; d < 360; d += 1) for (let p = 3; p <= 10; p++) shots.push([d * Math.PI / 180, p / 10]);
+      return shots;
+    }
+
+    function startAutopilot(lead = AUTOPILOT_LEAD_TICKS) {
+      if (gameState !== 'AIMING') return;
+      autopilot = {
+        phase: 'search', lead, window: 0, windowStart: tickCount + lead,
+        launchTick: tickCount + lead, shots: coarseShots(), idx: 0,
+        best: null, top: [], refined: false, overall: null
+      };
+      document.getElementById('autoBtn').classList.add('auto-active');
+      document.getElementById('hintText').textContent = 'Autopilot computing routes for the next launch windows...';
+    }
+
+    function cancelAutopilot() {
+      if (!autopilot) return;
+      autopilot = null;
+      document.getElementById('autoBtn').classList.remove('auto-active');
+    }
+
+    function lockAutopilotRoute(ap) {
+      aim = { set: true, angle: ap.overall.angle, power: ap.overall.power };
+      ap.launchTick = ap.overall.launchTick;
+      ap.phase = 'wait';
+      document.getElementById('hintText').textContent = 'Autopilot locked a route. Launching when the window opens...';
+    }
+
+    // Runs a slice of the search each frame so the game keeps animating
+    function updateAutopilot() {
+      if (!autopilot) return;
+      if (gameState !== 'AIMING') { cancelAutopilot(); return; }
+      const ap = autopilot;
+      if (ap.phase === 'search') {
+        const ahead = ap.launchTick - tickCount;
+        // Ran out of time (slow device): if a route is already in hand for a later window keep it, else start over with more lead
+        if (ahead <= 0) {
+          if (ap.overall && ap.overall.launchTick > tickCount + 30) { lockAutopilotRoute(ap); return; }
+          startAutopilot(Math.min(720, ap.lead * 2));
+          return;
+        }
+        const deadline = performance.now() + 9;
+        while (ap.idx < ap.shots.length && performance.now() < deadline) {
+          const [a, p] = ap.shots[ap.idx++];
+          const s = scoreShot(a, p, ahead);
+          if (s < 0) continue;
+          const shot = { angle: a, power: p, score: s, launchTick: ap.launchTick };
+          if (!ap.best || s > ap.best.score) ap.best = shot;
+          if (!ap.refined) ap.top = ap.top.concat(shot).sort((x, y) => y.score - x.score).slice(0, 5);
+        }
+        if (ap.idx < ap.shots.length) return;
+        if (ap.best && !ap.refined) {
+          // Second pass: fine grid around the five best coarse shots (narrow 3-star routes hide between grid lines)
+          ap.refined = true;
+          ap.idx = 0;
+          ap.shots = [];
+          ap.top.forEach(c => {
+            for (let dd = -1; dd <= 1.001; dd += 0.25) {
+              for (let dp = -0.1; dp <= 0.1001; dp += 0.025) {
+                const p = c.power + dp;
+                if (p >= MIN_AIM_POWER && p <= 1) ap.shots.push([c.angle + dd * Math.PI / 180, p]);
+              }
+            }
+          });
+          return;
+        }
+        // Window finished: keep the best route across windows; stop early once every beacon is collected
+        if (ap.best && (!ap.overall || ap.best.score > ap.overall.score)) ap.overall = ap.best;
+        const perfect = ap.overall && Math.floor(ap.overall.score / 10) === currentLevel.beacons.length;
+        if (perfect || ap.window + 1 >= AUTOPILOT_WINDOWS) {
+          if (ap.overall) { lockAutopilotRoute(ap); return; }
+          document.getElementById('hintText').textContent = 'Autopilot: no route in these windows, trying later ones...';
+          startAutopilot(ap.lead);
+          return;
+        }
+        ap.window++;
+        ap.launchTick = ap.windowStart + ap.window * AUTOPILOT_WINDOW_GAP;
+        ap.shots = coarseShots();
+        ap.idx = 0;
+        ap.best = null;
+        ap.top = [];
+        ap.refined = false;
+      } else if (ap.phase === 'wait' && tickCount >= ap.launchTick) {
+        cancelAutopilot();
+        launch();
       }
+    }
+
+    // --- AIM PANEL (bottom bar) ---
+    // Angles are shown compass-style: 0° = right, counter-clockwise positive on screen.
+    // aim.angle is in world coords (y down), so screen degrees = -aim.angle.
+    const KM_PER_POWER = MAX_DELTA_V * 2.8; // HUD km/s at full power
+    const angleSlider = document.getElementById('angleSlider');
+    const dvSlider = document.getElementById('dvSlider');
+    dvSlider.min = (MIN_AIM_POWER * KM_PER_POWER).toFixed(1);
+    dvSlider.max = KM_PER_POWER.toFixed(1);
+    let sliderDragging = false;
+
+    function aimScreenDegrees() {
+      let deg = (-aim.angle * 180 / Math.PI) % 360;
+      if (deg < 0) deg += 360;
+      return deg;
+    }
+
+    function setAimFromControls(deg, kms) {
+      if (gameState !== 'AIMING') return;
+      cancelAutopilot();
+      const power = Math.min(1, Math.max(MIN_AIM_POWER, kms / KM_PER_POWER));
+      aim = { set: true, angle: -((deg % 360 + 360) % 360) * Math.PI / 180, power };
+    }
+
+    angleSlider.addEventListener('input', () => setAimFromControls(+angleSlider.value, aim.set ? aim.power * KM_PER_POWER : +dvSlider.value));
+    dvSlider.addEventListener('input', () => setAimFromControls(aim.set ? aimScreenDegrees() : +angleSlider.value, +dvSlider.value));
+    [angleSlider, dvSlider].forEach(s => s.addEventListener('pointerdown', () => { sliderDragging = true; sfx.init(); }));
+    window.addEventListener('pointerup', () => { sliderDragging = false; });
+
+    document.querySelectorAll('.step-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        sfx.init();
+        const amt = (e.shiftKey ? 1 : 0.1) * Number(btn.dataset.dir);
+        const deg = aim.set ? aimScreenDegrees() : +angleSlider.value;
+        const kms = aim.set ? aim.power * KM_PER_POWER : +dvSlider.value;
+        if (btn.dataset.step === 'angle') setAimFromControls(deg + amt, kms);
+        else setAimFromControls(deg, kms + amt);
+      });
+    });
+
+    function updateAimPanel() {
+      const angleEl = document.getElementById('aimAngle');
+      const speedEl = document.getElementById('aimSpeed');
+      const fuelEl = document.getElementById('aimFuel');
+      const pt = document.getElementById('predictText');
+      if (aim.set) {
+        const deg = aimScreenDegrees();
+        angleEl.textContent = `${deg.toFixed(1)}°`;
+        speedEl.textContent = `${(aim.power * KM_PER_POWER).toFixed(1)} km/s`;
+        fuelEl.textContent = `${Math.round((1 - aim.power) * 100)}%`;
+        // Keep sliders in step with dragging / keys / autopilot, unless the user is holding one
+        if (!sliderDragging) {
+          angleSlider.value = deg.toFixed(1);
+          dvSlider.value = (aim.power * KM_PER_POWER).toFixed(1);
+        }
+      } else {
+        angleEl.textContent = speedEl.textContent = fuelEl.textContent = '—';
+      }
+      const lockSliders = gameState !== 'AIMING';
+      angleSlider.disabled = dvSlider.disabled = lockSliders;
+
+      let text = 'Drag from Earth to aim', cls = '';
+      if (gameState === 'FLYING') {
+        text = 'In flight';
+      } else if (gameState !== 'AIMING') {
+        text = 'Press RESET to fly again';
+      } else if (autopilot && autopilot.phase === 'search') {
+        const pct = Math.round(100 * autopilot.idx / autopilot.shots.length);
+        text = `AUTOPILOT: checking launch window ${autopilot.window + 1}/${AUTOPILOT_WINDOWS}${autopilot.refined ? ' (refining)' : ''}... ${pct}%`;
+        cls = 'predict-auto';
+      } else if (autopilot && autopilot.phase === 'wait') {
+        const wait = Math.max(0, (autopilot.launchTick - tickCount) / 60);
+        const n = prediction ? prediction.hits.size : 0;
+        text = `AUTOPILOT: launch window in ${wait.toFixed(1)} s · ${n}/${currentLevel.beacons.length} beacons`;
+        cls = 'predict-auto';
+      } else if (prediction) {
+        const total = currentLevel.beacons.length;
+        const n = prediction.hits.size;
+        if (prediction.end === 'capture') {
+          const stars = n === total ? 3 : n >= Math.ceil(total / 2) ? 2 : 1;
+          text = `PREDICTED: CAPTURE · ${n}/${total} beacons · ${starString(stars)}`;
+          cls = 'predict-good';
+        } else if (prediction.end === 'crash') {
+          text = `PREDICTED: ${prediction.reason.toUpperCase()}`;
+          cls = 'predict-bad';
+        } else {
+          text = `PREDICTED: MISSES TARGET${prediction.reason ? ' · ' + prediction.reason.toUpperCase() : ''}`;
+        }
+      }
+      pt.textContent = text;
+      pt.className = `text-[11px] min-h-[15px] ${cls || 'text-slate-400'}`;
+
+      const launchBtn = document.getElementById('launchBtn');
+      launchBtn.disabled = !(gameState === 'AIMING' && aim.set && !autopilot);
+      launchBtn.classList.toggle('pulse', !launchBtn.disabled && precise);
+    }
+
+    function togglePrecise() {
+      precise = !precise;
+      const btn = document.getElementById('preciseBtn');
+      btn.textContent = precise ? 'AIM: PRECISE' : 'AIM: QUICK';
+      btn.classList.toggle('active', precise);
+      document.getElementById('hintText').textContent = precise
+        ? 'Precise aim: drag to set, arrow keys to fine-tune (Shift = faster), then LAUNCH or Space.'
+        : currentLevel.hint;
+    }
+
+    function resetFromUi() {
+      sfx.init();
+      cancelAutopilot();
+      resetProbeToEarth();
+      document.getElementById('victoryModal').classList.add('hidden');
+      document.getElementById('hintText').textContent = currentLevel.hint;
     }
 
     // Mouse Listeners (down on the canvas so HUD clicks never start a drag)
@@ -1903,7 +2658,24 @@
     window.addEventListener('touchend', handlePointerUp);
 
     window.addEventListener('keydown', (e) => {
-      if (e.key === 'c' || e.key === 'C') cycleCamera();
+      const k = e.key;
+      // A focused slider already handles arrows itself, and a focused button handles Space/Enter
+      const tag = e.target.tagName;
+      if (tag === 'INPUT' && k.startsWith('Arrow')) return;
+      if (tag === 'BUTTON' && (k === ' ' || k === 'Enter')) return;
+      const step = e.shiftKey ? 4 : 1;
+      const canTune = gameState === 'AIMING' && aim.set;
+      if (k === 'c' || k === 'C') cycleCamera();
+      else if (k === 'l' || k === 'L') document.body.classList.toggle('show-labels');
+      else if (k === ' ' || k === 'Enter') { e.preventDefault(); sfx.init(); if (!autopilot) launch(); }
+      // Arrow keys fine-tune the aim: left/right = 0.1° (screen counter-clockwise / clockwise), up/down = 0.1 km/s
+      else if (k === 'ArrowLeft' && canTune) { e.preventDefault(); cancelAutopilot(); aim.angle -= 0.1 * step * Math.PI / 180; }
+      else if (k === 'ArrowRight' && canTune) { e.preventDefault(); cancelAutopilot(); aim.angle += 0.1 * step * Math.PI / 180; }
+      else if (k === 'ArrowUp' && canTune) { e.preventDefault(); cancelAutopilot(); aim.power = Math.min(1, aim.power + POWER_STEP * step); }
+      else if (k === 'ArrowDown' && canTune) { e.preventDefault(); cancelAutopilot(); aim.power = Math.max(MIN_AIM_POWER, aim.power - POWER_STEP * step); }
+      else if (k === 'p' || k === 'P') togglePrecise();
+      else if (k === 'a' || k === 'A') { sfx.init(); autopilot ? cancelAutopilot() : startAutopilot(); }
+      else if (k === 'r' || k === 'R') resetFromUi();
     });
 
     // --- UI BUTTON WIRING ---
@@ -1912,10 +2684,13 @@
       cycleCamera();
     });
 
-    document.getElementById('btnReset').addEventListener('click', () => {
+    document.getElementById('btnReset').addEventListener('click', resetFromUi);
+    document.getElementById('aimResetBtn').addEventListener('click', resetFromUi);
+    document.getElementById('preciseBtn').addEventListener('click', togglePrecise);
+    document.getElementById('launchBtn').addEventListener('click', () => { sfx.init(); launch(); });
+    document.getElementById('autoBtn').addEventListener('click', () => {
       sfx.init();
-      resetProbeToEarth();
-      document.getElementById('hintText').textContent = currentLevel.hint;
+      autopilot ? cancelAutopilot() : startAutopilot();
     });
 
     // Mission log sidebar
