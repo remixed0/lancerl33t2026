@@ -3,9 +3,10 @@
  *
  * Add one tag to a page:
  *   <script src="assistant/alien-assistant.js" defer></script>
- * It loads three.js, the alien head and the voice, then watches what the
- * visitor does (clicks, typing, forms, scrolling, copying, idling, leaving
- * and coming back, rage clicks, page errors) and comments out loud.
+ * It loads three.js, then reuses the project's shared alien head and voice
+ * (js/alien-head.js and js/voice.js), watches what the visitor does (clicks,
+ * typing, forms, scrolling, copying, idling, leaving and coming back, rage
+ * clicks, page errors) and comments out loud.
  * It never reads what people type, only which field they used.
  * Settings live behind the ⚙ button next to the alien.
  *
@@ -18,7 +19,7 @@
 
   const script = document.currentScript;
   const BASE = script ? script.src.replace(/[^/]*(\?.*)?$/, '') : 'assistant/';
-  const VERSION = '1';
+  const VERSION = '2';
   const THREE_URL = 'https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js';
 
   function loadScript(src) {
@@ -37,8 +38,8 @@
     css.href = BASE + 'alien-assistant.css?v=' + VERSION;
     document.head.appendChild(css);
     if (!window.THREE) await loadScript(THREE_URL);
-    if (!window.AlienHead) await loadScript(BASE + 'alien-head.js?v=' + VERSION);
-    if (!window.AlienVoice) await loadScript(BASE + 'voice.js?v=' + VERSION);
+    if (!window.AlienHead) await loadScript(BASE + '../js/alien-head.js?v=' + VERSION);
+    if (!window.AlienVoice) await loadScript(BASE + '../js/voice.js?v=' + VERSION);
     start();
   }
 
