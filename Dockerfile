@@ -2,8 +2,8 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# The game files live in the lagrange-hop-3d/ folder (extracted from lagrange-hop-3d.zip)
-COPY lagrange-hop-3d/ ./
+# The game files live in the lagrange-hop-single/ folder
+COPY lagrange-hop-single/ ./
 
 EXPOSE 8000
 

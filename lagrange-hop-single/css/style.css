@@ -84,7 +84,6 @@ body:not(.show-labels) .object-label { display: none; }
   text-shadow: 0 0 6px rgba(0, 0, 0, 0.95);
 }
 
-
 /* Bob, the alien co-pilot. He has no controls; clicks pass through to the game.
    Normal play: small, bottom-right above the mission bar. Tutorial: bigger, bottom-left.
    Both positions use left/bottom so the switch glides. */
@@ -195,6 +194,7 @@ body.tutorial #levelBar,
 body.tutorial #btnReset,
 body.tutorial #btnMissionLog,
 body.tutorial #btnHelp,
+body.tutorial #btnAiChat,
 body.tutorial #btnTutorial { pointer-events: none; opacity: 0.45; }
 body.tutorial #aimHint { visibility: hidden; }
 

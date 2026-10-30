@@ -11,6 +11,15 @@ const TIME_STEP = 0.35;
 const EARTH_GRAVITY_SCALE = 0;
 const BODY_GRAVITY_SCALE = 0.025;
 
+// --- NASA PUBLIC DATA (mission metadata from public NASA sources) ---
+const NASA_MISSIONS = [
+  { name: 'Voyager 1', agency: 'NASA', type: 'Interstellar Probe', status: 'Active', note: 'Launched 1977; now in interstellar space.' },
+  { name: 'Voyager 2', agency: 'NASA', type: 'Interstellar Probe', status: 'Active', note: 'Launched 1977; crossed into interstellar space 2018.' },
+  { name: 'Artemis I', agency: 'NASA', type: 'Crewed Mission', status: 'Completed', note: 'Uncrewed lunar test flight; opened new deep-space capability.' },
+  { name: 'Europa Clipper', agency: 'NASA', type: 'Spacecraft', status: 'Active', note: 'Orbiting Jupiter\'s icy moon Europa for ocean science.' },
+  { name: 'Parker Solar Probe', agency: 'NASA', type: 'Spacecraft', status: 'Active', note: 'Flying through the Sun\'s corona.' },
+];
+
 // Fixed world space: physics no longer depends on window size.
 // Level coordinates are fractions of this rectangle; it lives on the Z = 0 orbital plane.
 const WORLD_W = 1600;

@@ -1,5 +1,5 @@
 {
-  "name": "lagrange-hop-3d",
+  "name": "lagrange-hop-single",
   "version": "1.0.0",
   "description": "A 3D gravity-assist puzzle game. No dependencies: open index.html.",
   "private": true,

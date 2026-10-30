@@ -215,6 +215,8 @@ function initScene() {
   const engineGlow = makeGlowSprite('#38bdf8', 22, 0.9);
   engineGlow.position.x = -8;
   probeGroup.add(core, panels, dish, engineGlow);
+  // These low-poly parts stay as a fallback until the NASA Voyager GLB loads.
+  probeGroup.userData.lowPoly = [core, panels, dish];
   probeGroup.scale.setScalar(1.25);
   probeGroup.visible = false;
   scene.add(probeGroup);
@@ -293,6 +295,32 @@ function initScene() {
   scene.add(particlePoints);
 
   snapCamera();
+
+  // NASA Voyager 3D model (real spacecraft). Bundled locally in assets/, with NASA's CDN as a fallback.
+  const loader = new THREE.GLTFLoader();
+  const VOYAGER_CDN = 'https://assets.science.nasa.gov/content/dam/science/psd/solar/2023/09/v/Voyager.glb?emrc=6ae51305aee47';
+
+  function mountVoyager(gltf) {
+    const model = gltf.scene;
+    model.name = 'Voyager';
+    // Normalise scale and centre so it replaces the low-poly stand-in at the same visual size.
+    const box = new THREE.Box3().setFromObject(model);
+    const size = box.getSize(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z) || 1;
+    model.scale.setScalar((probe.radius * 7) / maxDim);
+    box.setFromObject(model);
+    const center = box.getCenter(new THREE.Vector3());
+    model.position.sub(center);
+    probeGroup.add(model);
+    probeGroup.userData.lowPoly.forEach((part) => { part.visible = false; });
+  }
+
+  loader.load('assets/Voyager.glb', mountVoyager, undefined, () => {
+    console.warn('Local Voyager model unavailable; loading from NASA CDN');
+    loader.load(VOYAGER_CDN, mountVoyager, undefined, (err) => {
+      console.warn('Voyager GLTF failed to load; keeping the low-poly probe', err);
+    });
+  });
 }
 
 function clearLevelGroup() {

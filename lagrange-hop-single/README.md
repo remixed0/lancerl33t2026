@@ -4,6 +4,7 @@ Angry Birds-style gravity-assist puzzle. Drag back from Earth to launch a probe,
 
 - `index.html` — Three.js (r128) 3D version. Open it in a browser; no build step.
 - `lagrange_hop_2d_original.html` — the original 2D Canvas version, kept for reference.
+- `assets/Voyager.glb` — NASA's real Voyager spacecraft model, used for the probe (NASA's CDN is the fallback).
 
 ## File layout
 Plain HTML, CSS and JavaScript: no modules, imports or build tools. The scripts are normal `<script>` tags that share global variables, so **the load order in `index.html` matters**: each file can use anything defined by the files above it.
@@ -11,11 +12,11 @@ Plain HTML, CSS and JavaScript: no modules, imports or build tools. The scripts 
 ```
 index.html          page markup (HUD, aim bar, sidebar, modals) + script tags
 css/style.css       custom styles (layout utilities come from Tailwind)
-js/config.js        constants (gravity, world size, launch limits) and shared game state
+js/config.js        constants (gravity, world size, launch limits), shared game state and NASA mission data
 js/sound.js         synthesized sound effects
 js/levels.js        the 8 missions (edit here to change layouts)
 js/world.js         coordinates, orbit movement, world <-> 3D conversion
-js/physics.js       gravity, trajectory prediction, launch-aim maths
+js/physics.js       JoltPhysics.js (WASM) gravity, trajectory prediction, launch-aim maths
 js/planets.js       planet / Earth / relay station models, shaders and textures
 js/scene.js         Three.js scene setup, level building, per-frame sync
 js/camera.js        TOP / CHASE / ISO cameras
@@ -28,6 +29,7 @@ js/input.js         mouse, touch and keyboard
 js/tutorial.js      tutorial: Bob flies mission 1 while explaining it
 js/main.js          main loop and start-up (loaded last)
 bob/                Bob himself: 3D alien head + 57 voice lines (shown in an iframe)
+assets/Voyager.glb  NASA Voyager model used for the probe
 ```
 
 ## Tutorial
@@ -61,6 +63,9 @@ A 3D alien head in the bottom-right corner, above the mission bar. He has no but
 | Sitting at the launch pad for 45 s | an idle line |
 
 The **SFX** button mutes his voice too (the speech bubble still shows). Browsers allow sound only after the first click, so a briefing that loads before then is replayed on that click. The game calls `bob.event(...)` from `js/game.js` and `js/autopilot.js`; `js/bob.js` passes it to `bob/` with `postMessage`. Bob's source project: https://github.com/imatsko-pcc/alien-head-3d
+
+## AI co-pilot
+The **🤖 AI** button opens a chat panel wired to a local Ollama model (`qwen2.5-coder:32b` at `http://127.0.0.1:11434/v1`). Ask it about the current mission, gravity assists or the NASA mission data in `js/config.js`. If Ollama is not running, the panel reports that the co-pilot is offline and the game keeps working normally.
 
 ## Controls
 - Drag from Earth and release to launch.

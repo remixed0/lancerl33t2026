@@ -114,10 +114,82 @@ function resetFromUi() {
   document.getElementById('hintText').textContent = currentLevel.hint;
 }
 
+// --- AI CO-PILOT CHATBOX STATE ---
+const aiChatPanel = document.getElementById('aiChatPanel');
+const aiChatLog = document.getElementById('aiChatLog');
+const aiChatForm = document.getElementById('aiChatForm');
+const aiChatInput = document.getElementById('aiChatInput');
+const aiChatClose = document.getElementById('aiChatClose');
+let aiChatOpen = false;
+let aiChatBusy = false;
+
+function aiChatAddMsg(role, text) {
+  const el = document.createElement('div');
+  el.className = `flex gap-1.5 ${role === 'user' ? 'justify-end' : 'justify-start'}`;
+  const bubble = document.createElement('div');
+  bubble.className = `max-w-[85%] px-2 py-1.5 rounded-lg text-[11px] leading-snug ${role === 'user' ? 'bg-cyan-500/20 text-cyan-100' : 'bg-slate-800 text-slate-200'}`;
+  bubble.textContent = text;
+  el.appendChild(bubble);
+  aiChatLog.appendChild(el);
+  aiChatLog.scrollTop = aiChatLog.scrollHeight;
+}
+
+async function aiChatSend(text) {
+  if (aiChatBusy) return;
+  aiChatBusy = true;
+  aiChatAddMsg('user', text);
+  const thinkIdx = aiChatLog.children.length;
+  aiChatAddMsg('ai', '…thinking');
+  try {
+    const res = await fetch('http://127.0.0.1:11434/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'qwen2.5-coder:32b',
+        messages: [
+          { role: 'system', content: 'You are the Lagrange Hop AI co-pilot. You help the player plan gravity-assist slingshots, interpret telemetry, and reference NASA mission data.' },
+          { role: 'user', content: text }
+        ]
+      })
+    });
+    const data = await res.json();
+    const reply = data?.choices?.[0]?.message?.content || 'No response.';
+    aiChatLog.children[thinkIdx].children[0].textContent = reply;
+  } catch (e) {
+    aiChatLog.children[thinkIdx].children[0].textContent = 'Co-pilot offline (Ollama). Start it with `ollama serve`.';
+  } finally { aiChatBusy = false; }
+}
+
+function openAiChat() {
+  aiChatOpen = true;
+  aiChatPanel.classList.remove('hidden');
+  if (aiChatLog.children.length === 0) aiChatAddMsg('ai', 'Co-pilot online. Ask me about the mission, slingshots, or NASA data.');
+  aiChatInput.focus();
+}
+function closeAiChat() {
+  aiChatOpen = false;
+  aiChatPanel.classList.add('hidden');
+}
+
+document.getElementById('aiChatForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const input = document.getElementById('aiChatInput');
+  const text = (input.value || '').trim();
+  if (!text) return;
+  aiChatAddMsg('user', text);
+  input.value = '';
+  aiChatSend(text);
+});
+document.getElementById('aiChatClose').addEventListener('click', () => { aiChatOpen = false; aiChatPanel.classList.add('hidden'); });
+
 // --- UI BUTTON WIRING ---
 document.getElementById('btnCam').addEventListener('click', () => {
   sfx.init();
   cycleCamera();
+});
+document.getElementById('btnAiChat').addEventListener('click', () => {
+  sfx.init();
+  aiChatOpen ? closeAiChat() : openAiChat();
 });
 
 document.getElementById('btnReset').addEventListener('click', resetFromUi);

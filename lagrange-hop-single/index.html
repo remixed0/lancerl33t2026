@@ -7,6 +7,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS2DRenderer.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@bulletin/js-adaptor@0.6.0/dist/js/jolt/index.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@500;700;900&family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 </head>
@@ -72,6 +74,9 @@
       <button id="btnHelp" class="px-3 py-2 bg-cyan-950/80 hover:bg-cyan-900 rounded-lg border border-cyan-500/40 text-cyan-300 transition text-xs font-mono-tech">
         MANUAL
       </button>
+      <button id="btnAiChat" class="px-3 py-2 bg-violet-950/80 hover:bg-violet-900 rounded-lg border border-violet-500/40 text-violet-300 transition text-xs font-mono-tech" title="AI Co-Pilot chat">
+        🤖 AI
+      </button>
       <button id="btnTutorial" class="px-3 py-2 bg-emerald-950/80 hover:bg-emerald-900 rounded-lg border border-emerald-500/40 text-emerald-300 transition text-xs font-mono-tech" title="Watch Bob fly Mission 1">
         TUTORIAL
       </button>
@@ -97,8 +102,8 @@
   </div>
 
   <!-- Bob, the alien co-pilot: no controls, he only speaks when game events happen (bob/ + js/bob.js).
-       Bottom-right, above the mission bar; bigger at the bottom-left during the tutorial.
-       He sits above the pop-ups (z-35) so his lines stay readable; clicks pass through him. -->
+       Bottom-right above the mission bar; bigger at the bottom-left during the tutorial.
+       He sits above the pop-ups so his lines stay readable; clicks pass through him. -->
   <div id="bobDock" class="bob-dock hidden sm:block">
     <p id="bobBubble" class="bob-bubble font-mono-tech" role="status" aria-live="polite"></p>
     <iframe id="bobFrame" src="bob/index.html?transparent=1&amp;subtitles=0" allow="autoplay" title="Bob, the alien co-pilot" tabindex="-1"></iframe>
@@ -240,6 +245,19 @@
       </div>
       <button id="startFromManualBtn" class="w-full mt-4 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-orbitron font-bold transition">ENGAGE MISSION</button>
     </div>
+  </div>
+
+  <!-- AI Co-Pilot Chatbox (talks to local Ollama/Qwen backend) -->
+  <div id="aiChatPanel" class="absolute bottom-24 right-4 z-20 w-80 max-w-[90vw] bg-slate-900/95 backdrop-blur-md border border-cyan-500/40 rounded-xl flex flex-col overflow-hidden shadow-2xl pointer-events-auto hidden">
+    <div class="flex items-center justify-between px-3 py-2 bg-slate-800/80 border-b border-slate-700">
+      <span class="text-[11px] font-mono-tech uppercase text-cyan-300 tracking-widest">🤖 CO-PILOT</span>
+      <button id="aiChatClose" class="text-slate-400 hover:text-white text-sm font-bold px-2" title="Close chat">✕</button>
+    </div>
+    <div id="aiChatLog" class="h-44 overflow-y-auto px-3 py-2 text-[11px] font-mono-tech text-slate-300 space-y-2"></div>
+    <form id="aiChatForm" class="flex gap-1 p-2 border-t border-slate-800">
+      <input id="aiChatInput" class="flex-1 bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-[11px] text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500/60" placeholder="Ask the co-pilot about the mission..." autocomplete="off" />
+      <button type="submit" class="px-3 py-1.5 rounded bg-cyan-500/90 hover:bg-cyan-400 text-slate-950 text-[11px] font-bold">SEND</button>
+    </form>
   </div>
 
   <!-- Game scripts: plain files loaded in order (later files use what earlier ones define) -->
