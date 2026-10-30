@@ -411,6 +411,9 @@ FodyWeavers.xsd
 !.vscode/extensions.json
 !.vscode/*.code-snippets
 
+# VS Code workspace file
+lancerl33t2026.code-workspace
+
 # Local History for Visual Studio Code
 .history/
 
