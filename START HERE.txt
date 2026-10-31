@@ -1,18 +1,18 @@
-ILYA'S VERSION OF Verity Up To Space
-==============================
+ILYA'S VERSION OF VERITY UP TO SPACE
+====================================
 
 TO PLAY
-  Open the "lagrange-hop-single" folder and double-click "Play Verity Up To Space.bat".
+  Open the "verity-up-to-space" folder and double-click "Play Verity Up To Space.bat".
   (There is also a "Play Ilya's Game" shortcut on your Desktop.)
   A small black window opens and the game starts in your browser.
   Keep that window open while you play; close it to stop the game.
 
 WHAT'S IN HERE
-  lagrange-hop-single\          the game (8 missions, Verity the alien co-pilot, tutorial)
+  verity-up-to-space\           the game (8 missions, Verity the alien co-pilot, tutorial)
     index.html                  the game page
-    js\                         game code (js\tutorial.js = Verity's tutorial, js\Verity.js = Verity's events)
-    Verity\                        Verity himself: 3D alien head and his voice lines (Verity\audio\*.mp3)
-    Play Verity Up To Space.bat       double-click to play
+    js\                         game code (js\tutorial.js = Verity's tutorial, js\verity.js = Verity's events)
+    verity\                     Verity herself: 3D alien head and her voice lines (verity\audio\*.mp3)
+    Play Verity Up To Space.bat double-click to play
 
 GIT
   This folder is the git branch "ilya-version-of-the-game" of github.com/remixed0/lancerl33t2026.

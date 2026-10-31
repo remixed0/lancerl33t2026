@@ -1,4 +1,4 @@
-// Verity Up To Space 3D: Tutorial. Verity flies mission 1 himself while explaining it (recorded lines,
+// Verity Up To Space 3D: Tutorial. Verity flies mission 1 herself while explaining it (recorded lines,
 // glowing markers on Earth, the target, the beacons and the Moon), then glides to the
 // bottom-right corner and hands mission 1 to the player. Offered on the first visit;
 // the TUTORIAL button replays it. Esc or SKIP ends it early.

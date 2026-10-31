@@ -46,7 +46,7 @@
   const verityQueue = [];
   let greeted = false;
   let busy = false;
-  const history = [{ role: 'system', content: SYSTEM }];
+  const chatHistory = [{ role: 'system', content: SYSTEM }];
 
   // ---------- Tabs and lazy iframes ----------
   function ensureGame() {
@@ -161,20 +161,20 @@
     busy = true;
     promptSend.disabled = true;
     addMsg('user', clean);
-    history.push({ role: 'user', content: clean });
+    chatHistory.push({ role: 'user', content: clean });
     const thinking = addMsg('verity', '…thinking', 'thinking');
     try {
-      const reply = await askOllama(history.slice(-12));
+      const reply = await askOllama(chatHistory.slice(-12));
       thinking.classList.remove('thinking');
       thinking.textContent = reply;
-      history.push({ role: 'assistant', content: reply });
+      chatHistory.push({ role: 'assistant', content: reply });
       speak(reply);
     } catch (e) {
       const reply = CANNED[Math.floor(Math.random() * CANNED.length)];
       thinking.classList.remove('thinking');
       thinking.classList.add('offline');
       thinking.textContent = reply;
-      history.push({ role: 'assistant', content: reply });
+      chatHistory.push({ role: 'assistant', content: reply });
       addMsg('system', 'Ollama is offline, so that was a canned reply. Start it with "ollama serve".');
       speak(reply);
     } finally {

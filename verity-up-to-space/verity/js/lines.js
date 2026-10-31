@@ -3,7 +3,7 @@
  *
  * Every line has an MP3 in audio/ (ElevenLabs voice "Jessica", pitched up
  * 1.5x). Lines are grouped by the game event that plays them; Verity picks a
- * random one from the group, avoiding the one he said last.
+ * random one from the group, avoiding the one she said last.
  */
 (function () {
   'use strict';
@@ -77,7 +77,7 @@
       idle_2: 'Take your time. I only have a few more million years.'
     },
 
-    // Tutorial (Verity flies mission 1 himself; played in order by the game's js/tutorial.js)
+    // Tutorial (Verity flies mission 1 herself; played in order by the game's js/tutorial.js)
     tut_intro: { tut_intro: "Hi, I'm Verity, your alien co-pilot. I'll fly the first mission once, so watch closely. I don't do encores." },
     tut_earth: { tut_earth: 'This is Earth. Your probe launches from here. Drag backward from it, like a slingshot, and let go.' },
     tut_target: { tut_target: "That green ring is where you're going. Fly into it gently, and you're captured in orbit." },

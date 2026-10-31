@@ -91,21 +91,21 @@
   </div>
   <div id="tutorialCard" class="hidden absolute inset-0 z-30 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-emerald-500/60 rounded-2xl p-6 sm:p-8 max-w-sm w-full text-center glow-cyan">
-      <h2 class="text-xl font-orbitron font-black text-emerald-400 tracking-wider mb-2">MEET Verity</h2>
+      <h2 class="text-xl font-orbitron font-black text-emerald-400 tracking-wider mb-2">MEET VERITY</h2>
       <p class="text-sm font-mono-tech text-slate-300">Your alien co-pilot will fly Mission 1 once to show you how slingshots, beacons and captures work.</p>
       <div class="flex gap-3 mt-6">
         <button id="tutSkipBtn" class="flex-1 py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-orbitron text-xs font-bold transition">SKIP</button>
-        <button id="tutStartBtn" class="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-orbitron text-xs font-extrabold transition">▶ WATCH Verity FLY</button>
+        <button id="tutStartBtn" class="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-orbitron text-xs font-extrabold transition">▶ WATCH VERITY FLY</button>
       </div>
     </div>
   </div>
 
-  <!-- Verity, the alien co-pilot: no controls, he only speaks when game events happen (Verity/ + js/Verity.js).
+  <!-- Verity, the alien co-pilot: no controls, she only speaks when game events happen (verity/ + js/verity.js).
        Bottom-right above the mission bar; bigger at the bottom-left during the tutorial.
-       He sits above the pop-ups so his lines stay readable; clicks pass through him. -->
+       She sits above the pop-ups so her lines stay readable; clicks pass through her. -->
   <div id="verityDock" class="Verity-dock hidden sm:block">
     <p id="verityBubble" class="Verity-bubble font-mono-tech" role="status" aria-live="polite"></p>
-    <iframe id="verityFrame" src="Verity/index.html?transparent=1&amp;subtitles=0" allow="autoplay" title="Verity, the alien co-pilot" tabindex="-1"></iframe>
+    <iframe id="verityFrame" src="verity/index.html?transparent=1&amp;subtitles=0" allow="autoplay" title="Verity, the alien co-pilot" tabindex="-1"></iframe>
   </div>
 
   <!-- Level Select & Guidance Bar (Bottom) -->
@@ -269,7 +269,7 @@
   <script src="js/scene.js"></script>
   <script src="js/camera.js"></script>
   <script src="js/progress.js"></script>
-  <script src="js/Verity.js"></script>
+  <script src="js/verity.js"></script>
   <script src="js/game.js"></script>
   <script src="js/autopilot.js"></script>
   <script src="js/ui.js"></script>

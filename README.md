@@ -8,18 +8,29 @@ A combined site with three tabbed sections:
 
 - **💬 Prompt Verity** – Open a chat panel that asks a local Ollama model (`qwen2.5-coder:32b` at `http://127.0.0.1:11434/v1`) for an in‑character reply, then speaks it aloud. If Ollama is not running, Verity replies with a canned line. The chat remembers a short history and stays in character (playful, cosmic, encouraging, concise, 1‑3 short sentences). You can ask about the game, slingshots, NASA data, or anything else.
 
-## Server
+## Deploy
 
-The site is served by nginx:
+It's a static site: any web server that serves the repo root works. Everything lives under one origin:
 
-- **Port 8080** – `verity-up-to-space/` – the game.
-- **Port 8081** – `alien-head-3d/` – Verity and the Prompt Verity tab.
+| URL | What |
+| --- | --- |
+| `/` | tabbed site (`index.html` + `site/`) |
+| `/verity-up-to-space/` | the game on its own |
+| `/alien-head-3d/` | Verity, the webcam alien |
 
-Open `http://127.0.0.1:8080/` for the game, or `http://127.0.0.1:8081/` for the Verity site.
+- **Docker (nginx):** `docker build -t verity . && docker run -p 8080:80 verity`, then open `http://127.0.0.1:8080/`. `.dockerignore` keeps docs, launchers and dev files out of the image.
+- **Any static host** (GitHub Pages, Netlify, nginx, S3...): publish the repo root.
+- **Locally:** `python3 -m http.server 8000` from the repo root, then open `http://127.0.0.1:8000/`.
+
+Production notes:
+
+- **Serve over HTTPS.** Browsers only allow the webcam (Verity tab) on `https://` pages or `localhost`.
+- **File names are case-sensitive** on Linux servers. Keep paths lowercase and matching exactly (`verity/`, `js/verity.js`).
+- **The AI chats call Ollama on the visitor's own machine** (`http://127.0.0.1:11434`). On a public site they only work for visitors running Ollama with this site's origin allowed (`OLLAMA_ORIGINS`); everyone else gets the offline/canned replies.
 
 ## Quick start
 
-1. Double‑click `index.html` (repo root) – the tabbed site opens in your browser.
+1. Start a local server in the repo root (see above) and open the site. Opening `index.html` straight from disk also works, but browsers then block Verity's voice.
 2. Click the **🚀 Game** tab to play Verity Up To Space.
 3. Click the **👽 Verity** tab to see the 3D alien mirror and open voice settings.
 4. Click the **💬 Prompt Verity** tab to chat with Verity via Ollama.
@@ -28,11 +39,11 @@ Open `http://127.0.0.1:8080/` for the game, or `http://127.0.0.1:8081/` for the 
 
 ```
 index.html                tabbed site shell (Game / Verity / Prompt Verity)
-css/style.css             shared site styles
 site/prompt.js            Prompt Verity chat + Ollama API
 site/site.css             tab and chat layout styles
-verity-up-to-space/       legacy Verity Up To Space build (game only)
-alien-head-3d/            3D alien head + webcam mirror + assistant widget
+verity-up-to-space/       the game (shown in the Game tab)
+alien-head-3d/            3D alien head + webcam mirror + assistant widget (Verity tab)
+Dockerfile                nginx image for production
 ```
 
 ## Controls (Game)
@@ -41,7 +52,7 @@ alien-head-3d/            3D alien head + webcam mirror + assistant widget
 - Bottom aim bar: **ANGLE** and **Δv** sliders with ‹ › buttons for 0.1 steps (Shift‑click = 1.0), fuel left, the predicted outcome (capture, beacons, stars or crash), and buttons:
   - **AIM: QUICK / PRECISE** (`P`): precise mode doesn't launch on release; fine‑tune with arrow keys (Shift = 4×), then **LAUNCH** or `Space`.
   - **AUTOPILOT** (`A`): searches angle/power for the best route at the next launch window and flies it.
-  - **RESET** (`R`): back to Earth; the last flight stays as a faint ghost path.
+  - **RESET** (`R`, also **RESET PROBE** in the top bar): back to Earth; the last flight stays as a faint ghost path.
 - Predicted path: glowing dots ending in a green ring (capture), red ✕ (crash) or grey dot (miss); beacons it will collect light up cyan.
 - **CAM** button or `C` key cycles TOP / CHASE / ISO camera views.
 - Object names are hidden to reduce clutter; `L` toggles them.
@@ -86,10 +97,10 @@ Then Verity glides to the **bottom‑right corner** (smaller, above the mission 
 2. Mars Insertion: asteroid field
 3. Venus Swing‑By: heavy planet, scattered debris
 4. Asteroid Belt Run: thread a 6‑rock belt, two dwarf planets
-5. The Grand Tour: Jupiter + orbiting Ganymede
+5. The Grand Tour: Jupiter + orbiting Ganymede and Io
 6. Saturn Ring Dive: ringed Saturn, two counter‑orbiting moons, ring debris
-7. Ice Giant Relay: Uranus, Neptune, orbiting Triton
-8. Heliopause Gauntlet: three giants, Io, 8 Kuiper objects, smallest dock
+7. Ice Giant Relay: Uranus, Neptune, orbiting Triton and Titania
+8. Heliopause Gauntlet: three giants, Titan and Io, 8 Kuiper objects, smallest dock
 
 Rating: 1★ capture, 2★ at least half the beacons, 3★ every beacon. Beacons were placed along simulated winning paths, so every mission has a verified 3‑star shot.
 
@@ -98,5 +109,5 @@ Rating: 1★ capture, 2★ at least half the beacons, 3★ every beacon. Beacons
 - Physics run in a fixed 1600×900 world, so window size no longer changes trajectories.
 - Gravity retuned: at full strength Earth's escape velocity (~149) dwarfed the max launch Δv (9.8), so every launch crashed. Earth is now a launch pad (`EARTH_GRAVITY_SCALE = 0`) and planets use `BODY_GRAVITY_SCALE = 0.025`.
 - Probe launches from Earth's surface, not its centre.
-- Trajectory preview is 600 steps, advances orbiting moons in lockstep with the flight, and stops at hazards.
+- Trajectory preview is 1500 steps, uses the same map edges as the real flight, advances orbiting moons in lockstep with the flight, and stops at hazards.
 - Fuel no longer carries over between missions.

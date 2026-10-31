@@ -11,3 +11,7 @@ lines.csv
 **/.vscode
 **/*.bat
 **/*.ps1
+**/.gitignore
+**/package.json
+**/*.md
+**/lagrange_hop_2d_original.html

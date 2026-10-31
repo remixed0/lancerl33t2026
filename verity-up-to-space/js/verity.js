@@ -1,4 +1,4 @@
-// Verity Up To Space 3D: Verity, the alien co-pilot. He lives in Verity/ (shown in an iframe in the bottom bar)
+// Verity Up To Space 3D: Verity, the alien co-pilot. She lives in verity/ (shown in an iframe in the bottom bar)
 // and speaks pre-recorded lines only when game events happen. game.js, autopilot.js and ui.js call Verity.event(...).
 
 const Verity = (() => {

@@ -1,8 +1,8 @@
 /*
  * Alien Head 3D — Verity, the event-driven alien
  *
- * No user input: Verity idles on his own (floats, blinks, looks around) and
- * speaks only when the game tells him something happened. Each event plays
+ * No user input: Verity idles on her own (floats, blinks, looks around) and
+ * speaks only when the game tells her something happened. Each event plays
  * one of the pre-made MP3s in audio/ (see js/lines.js) with lip sync, a
  * matching face and a subtitle.
  *
@@ -145,7 +145,7 @@
     if (current) { current.audio.pause(); current = null; }
   }
 
-  // When Verity is inside a game page, tell the game what he is saying (for its own subtitles)
+  // When Verity is inside a game page, tell the game what she is saying (for its own subtitles)
   const host = window.parent !== window ? window.parent : null;
   function tellHost(msg) { if (host) host.postMessage(msg, '*'); }
 
