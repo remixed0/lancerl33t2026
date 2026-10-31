@@ -15,7 +15,7 @@
     'You are chatting with an Earthling through a chat panel.',
     'Reply in character: playful, cosmic, encouraging, and concise (1 to 3 short sentences).',
     'You love space, gravity assists, and Earthling habits.',
-    'If the user asks about the Lagrange Hop game, help with slingshots, missions, and controls.',
+    'If the user asks about the Verity Up To Space game, help with slingshots, missions, and controls.',
     "Never claim to see the user's camera unless they say it is on.",
     'Do not use markdown, bullet lists, or emojis unless the user does.',
     'If you do not know something, say so cheerfully.'
@@ -41,7 +41,7 @@
   const promptClose = document.getElementById('promptClose');
 
   const NAMES = ['game', 'verity', 'prompt'];
-  const TITLES = { game: 'Lagrange Hop', verity: 'Verity', prompt: 'Prompt Verity' };
+  const TITLES = { game: 'Verity Up To Space', verity: 'Verity', prompt: 'Prompt Verity' };
   let verityReady = false;
   const verityQueue = [];
   let greeted = false;
@@ -50,7 +50,7 @@
 
   // ---------- Tabs and lazy iframes ----------
   function ensureGame() {
-    if (!gameFrame.getAttribute('src')) gameFrame.src = 'lagrange-hop-single/index.html';
+    if (!gameFrame.getAttribute('src')) gameFrame.src = 'verity-up-to-space/index.html';
   }
 
   function ensureVerity() {
