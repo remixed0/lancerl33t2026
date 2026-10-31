@@ -8,7 +8,6 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS2DRenderer.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@bulletin/js-adaptor@0.6.0/dist/js/jolt/index.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@500;700;900&family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 </head>
@@ -101,12 +100,12 @@
     </div>
   </div>
 
-  <!-- Verity, the alien co-pilot: no controls, he only speaks when game events happen (Verity/ + js/Verity.js).
+  <!-- Verity, the alien co-pilot: no controls, he only speaks when game events happen (verity/ + js/verity.js).
        Bottom-right above the mission bar; bigger at the bottom-left during the tutorial.
        He sits above the pop-ups so his lines stay readable; clicks pass through him. -->
   <div id="verityDock" class="Verity-dock hidden sm:block">
     <p id="verityBubble" class="Verity-bubble font-mono-tech" role="status" aria-live="polite"></p>
-    <iframe id="verityFrame" src="Verity/index.html?transparent=1&amp;subtitles=0" allow="autoplay" title="Verity, the alien co-pilot" tabindex="-1"></iframe>
+    <iframe id="verityFrame" src="verity/index.html?transparent=1&amp;subtitles=0" allow="autoplay" title="Verity, the alien co-pilot" tabindex="-1"></iframe>
   </div>
 
   <!-- Level Select & Guidance Bar (Bottom) -->
@@ -270,7 +269,7 @@
   <script src="js/scene.js"></script>
   <script src="js/camera.js"></script>
   <script src="js/progress.js"></script>
-  <script src="js/Verity.js"></script>
+  <script src="js/verity.js"></script>
   <script src="js/game.js"></script>
   <script src="js/autopilot.js"></script>
   <script src="js/ui.js"></script>

@@ -34,7 +34,7 @@ js/planets.js           planet / Earth / relay station models, shaders and textu
 js/scene.js             Three.js scene setup, level building, per‑frame sync
 js/camera.js            TOP / CHASE / ISO cameras
 js/progress.js          unlocks, best stars, level bar, mission log sidebar
-js/Verity.js            Verity the alien co‑pilot: sends him game events, shows his speech bubble
+js/verity.js            Verity the alien co‑pilot: sends him game events, shows his speech bubble
 js/game.js              level loading, flight updates, launch, crash and victory
 js/autopilot.js         launch‑window route search
 js/ui.js                aim bar, sliders, buttons, modals, resize
