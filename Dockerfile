@@ -2,8 +2,9 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# The game files live in the lagrange-hop-single/ folder
-COPY lagrange-hop-single/ ./
+# Serve the whole site: index.html (tabs) + site/, the game in lagrange-hop-single/
+# and Verity in alien-head-3d/. The game alone is at /lagrange-hop-single/.
+COPY . ./
 
 EXPOSE 8000
 

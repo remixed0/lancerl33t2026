@@ -15,8 +15,8 @@ css/style.css       custom styles (layout utilities come from Tailwind)
 js/config.js        constants (gravity, world size, launch limits), shared game state and NASA mission data
 js/sound.js         synthesized sound effects
 js/levels.js        the 8 missions (edit here to change layouts)
-js/world.js         coordinates, orbit movement, world <-> 3D conversion
-js/physics.js       JoltPhysics.js (WASM) gravity, trajectory prediction, launch-aim maths
+js/world.js         coordinates, map edges, orbit movement, world <-> 3D conversion
+js/physics.js       gravity, trajectory prediction, launch-aim maths
 js/planets.js       planet / Earth / relay station models, shaders and textures
 js/scene.js         Three.js scene setup, level building, per-frame sync
 js/camera.js        TOP / CHASE / ISO cameras
@@ -72,7 +72,7 @@ The **🤖 AI** button opens a chat panel wired to a local Ollama model (`qwen2.
 - Bottom aim bar: **ANGLE** and **Δv sliders** with ‹ › buttons for 0.1 steps (Shift-click = 1.0), fuel left, the predicted outcome (capture, beacons, stars or crash), and buttons:
   - **AIM: QUICK / PRECISE** (`P`): precise mode doesn't launch on release; fine-tune with arrow keys (Shift = 4×), then **LAUNCH** or `Space`.
   - **AUTOPILOT** (`A`): searches angle/power for the best route at the next launch window and flies it.
-  - **RESET** (`R`): back to Earth; the last flight stays as a faint ghost path.
+  - **RESET** (`R`, also **RESET PROBE** in the top bar): back to Earth; the last flight stays as a faint ghost path.
 - Predicted path: glowing dots ending in a green ring (capture), red ✕ (crash) or grey dot (miss); beacons it will collect light up cyan.
 - **CAM** button or `C` key cycles TOP / CHASE / ISO camera views.
 - Object names are hidden to reduce clutter; `L` toggles them.
@@ -86,10 +86,10 @@ The **🤖 AI** button opens a chat panel wired to a local Ollama model (`qwen2.
 2. Mars Insertion: asteroid field
 3. Venus Swing-By: heavy planet, scattered debris
 4. Asteroid Belt Run: thread a 6-rock belt, two dwarf planets
-5. The Grand Tour: Jupiter + orbiting Ganymede
+5. The Grand Tour: Jupiter + orbiting Ganymede and Io
 6. Saturn Ring Dive: ringed Saturn, two counter-orbiting moons, ring debris
-7. Ice Giant Relay: Uranus, Neptune, orbiting Triton
-8. Heliopause Gauntlet: three giants, Io, 8 Kuiper objects, smallest dock
+7. Ice Giant Relay: Uranus, Neptune, orbiting Triton and Titania
+8. Heliopause Gauntlet: three giants, Titan and Io, 8 Kuiper objects, smallest dock
 
 Rating: 1★ capture, 2★ at least half the beacons, 3★ every beacon. Beacons were placed along simulated winning paths, so every mission has a verified 3-star shot.
 
@@ -97,5 +97,5 @@ Rating: 1★ capture, 2★ at least half the beacons, 3★ every beacon. Beacons
 - Physics run in a fixed 1600×900 world, so window size no longer changes trajectories.
 - Gravity retuned: at full strength Earth's escape velocity (~149) dwarfed the max launch Δv (9.8), so every launch crashed. Earth is now a launch pad (`EARTH_GRAVITY_SCALE = 0`) and planets use `BODY_GRAVITY_SCALE = 0.025`.
 - Probe launches from Earth's surface, not its centre.
-- Trajectory preview is 600 steps, advances orbiting moons in lockstep with the flight, and stops at hazards.
+- Trajectory preview is 1500 steps (`PREDICTION_STEPS`), uses the same map edges as the real flight, advances orbiting moons in lockstep with the flight, and stops at hazards.
 - Fuel no longer carries over between missions.

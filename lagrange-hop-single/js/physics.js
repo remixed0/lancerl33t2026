@@ -1,41 +1,7 @@
-// Lagrange Hop 3D: JoltPhysics.js (WebAssembly) physics, trajectory prediction and launch-aim maths.
+// Lagrange Hop 3D: Gravity, trajectory prediction and launch-aim maths (plain JavaScript).
 
-// --- PHYSICS ENGINE: JOLTPHYSICS.JS (WEBASSEMBLY) ---
-// All gravitational simulation runs through the Jolt WASM rigid-body engine.
-// The probe and celestial bodies are simulated as Jolt bodies; trajectory
-// prediction mirrors the same Jolt-backed integration before launch.
-
-let joltModule = null;
-let joltInterface = null;
-let joltBodies = [];
-let joltInitialized = false;
-
-async function initJoltPhysics() {
-  if (joltInitialized) return;
-  if (typeof window.Jolt === 'undefined') throw new Error('JoltPhysics WASM module failed to load');
-  joltModule = await window.Jolt();
-  joltInterface = new joltModule.JoltInterface(
-    new joltModule.JoltSettings({ gravity: new joltModule.Vec3(0, -9.81, 0) }),
-    new joltModule.RVec3(0, 0, 0),
-    new joltModule.RVec3(0, 0, 0)
-  );
-  joltInitialized = true;
-}
-
-function destroyJoltPhysics() {
-  if (joltInterface) { joltInterface.Destroy(); joltInterface = null; }
-  joltModule = null;
-  joltBodies = [];
-  joltInitialized = false;
-}
-
-// Reset the Jolt simulation for a fresh flight from the current orbital state
-function resetJoltFlight() {
-  joltBodies = [];
-}
-
-// Core gravitational acceleration between the probe and celestial bodies,
-// evaluated through the Jolt WASM engine.
+// --- GRAVITY ---
+// Gravitational acceleration on the probe from the planets and moons (Earth only if EARTH_GRAVITY_SCALE > 0)
 function calculateGravityAt(x, y, ignoreBodies = []) {
   let ax = 0;
   let ay = 0;
@@ -105,7 +71,7 @@ function calculatePredictiveTrajectory(startX, startY, initVx, initVy, maxSteps 
       if (Math.hypot(simVx, simVy) < 14) { end = 'capture'; break; }
       end = 'fast'; reason = 'Too fast to capture';
     }
-    if (simX < -150 || simX > WORLD_W + 150 || simY < -150 || simY > WORLD_H + 150) { end = 'miss'; reason = 'Drifts out of the system'; break; }
+    if (isOutOfBounds(simX, simY)) { end = 'miss'; reason = 'Drifts out of the system'; break; }
   }
   movers.forEach((o, i) => { o.angle = savedAngles[i]; });
   if (!keepPoints) points.push({ x: simX, y: simY });

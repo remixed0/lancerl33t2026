@@ -6,7 +6,7 @@ It also **talks** in a high-pitched voice: it greets you, reacts out loud to you
 
 No camera? It runs a demo of its expressions and follows your mouse.
 
-The project also contains **Alien Assistant**: the same alien, embedded as a widget that lives in the corner of a page and comments out loud on what you do. Open `assistant.html` for its demo page, or click **🤖 Assistant demo** on the main page.
+The project also contains **Alien Assistant**: the same alien, embedded as a widget that lives in the corner of a page and comments out loud on what you do. Click **🧪 Playground** on the main page to try it.
 
 ## Run it
 
@@ -17,8 +17,6 @@ Browsers only allow the camera on `https://` pages or on `localhost`, so:
 - **GitHub Pages (easiest to share):** repo → **Settings** → **Pages** → deploy from the `main` branch, `/ (root)`. Open the link it gives you.
 - **VS Code:** install the **Live Server** extension, right-click `index.html` → **Open with Live Server**.
 - **Double-click `index.html`:** the demo always works. Chrome usually allows the camera from a local file too; if it doesn't, use one of the options above.
-
-`assistant.html` needs no camera and works the same way.
 
 Click **Start camera** and allow access. The first time, the face tracker downloads about 13 MB.
 
@@ -47,7 +45,7 @@ Your video never leaves your computer. Face tracking runs inside the browser wit
 
 ## Alien Assistant
 
-`assistant.html` is a demo page for the widget version of the same alien. The little alien sits in the corner, watches what you do and comments out loud: clicks, form fields, scrolling, copying, idling, leaving the tab and coming back, rage clicks and page errors. It never reads what you type, only which field you used, and it ignores password fields.
+The **🧪 Playground** drawer on the main page is the demo for the widget version of the same alien. The alien watches what you do and comments out loud: clicks, form fields, scrolling, copying, idling, leaving the tab and coming back, rage clicks and page errors. It never reads what you type, only which field you used, and it ignores password fields.
 
 ### Add it to any page
 
@@ -85,16 +83,14 @@ The 🔊 button mutes it, and the − button hides it (a small 👽 button bring
 ## Project structure
 
 ```
-index.html                webcam app: page and buttons
-assistant.html            Alien Assistant demo page
-css/style.css             webcam app styles
-css/demo.css              assistant demo page styles
-js/alien-head.js          the 3D alien and its expressions (shared by both pages)
+index.html                webcam app: page, buttons and the Playground drawer
+css/style.css             webcam app and Playground styles
+js/alien-head.js          the 3D alien and its expressions (shared with the widget)
 js/face-tracker.js        webcam + MediaPipe face tracking
-js/voice.js               the alien's voice (ElevenLabs or browser speech) and lip sync (shared)
+js/voice.js               the alien's voice (ElevenLabs or browser speech) and lip sync (shared with the widget)
 js/main.js                scene, demo mode, face-to-alien mapping, reactions
 assistant/alien-assistant.js   the widget: loader, reactions, settings panel
 assistant/alien-assistant.css  widget styles (all scoped to .aa-root)
 ```
 
-Both pages use the same `js/alien-head.js` and `js/voice.js`; the widget loads them itself with relative `../js/` URLs.
+The webcam app and the widget use the same `js/alien-head.js` and `js/voice.js`; the widget loads them itself with relative `../js/` URLs.

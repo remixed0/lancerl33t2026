@@ -189,12 +189,7 @@ function updateGame(dt) {
     }
 
     // Check Out of Bounds
-    if (
-      probe.x < -200 ||
-      probe.x > WORLD_W + 200 ||
-      probe.y < -200 ||
-      probe.y > WORLD_H + 200
-    ) {
+    if (isOutOfBounds(probe.x, probe.y)) {
       triggerLost("Deep space drift. Probe lost into the cosmic void.");
     }
 
@@ -219,7 +214,7 @@ function triggerCrash(reason, what) {
   gameState = 'CRASHED';
   sfx.playCrash();
   spawnExplosion(probe.x, probe.y, '#ef4444');
-  document.getElementById('hintText').textContent = `CRITICAL FAILURE: ${reason} Press Reload to retry.`;
+  document.getElementById('hintText').textContent = `CRITICAL FAILURE: ${reason} Press RESET (R) to retry.`;
   if (first) bob.event(what && what.hazard ? 'hazard' : 'crash', what);
 }
 
@@ -227,7 +222,7 @@ function triggerLost(reason) {
   const first = probe.alive;
   probe.alive = false;
   gameState = 'LOST';
-  document.getElementById('hintText').textContent = reason + " Press Reload to aim again.";
+  document.getElementById('hintText').textContent = reason + " Press RESET (R) to aim again.";
   if (first) bob.event('lost');
 }
 
@@ -265,7 +260,7 @@ function triggerVictory() {
   const nextBtn = document.getElementById('modalNextBtn');
   nextBtn.textContent = isLast ? 'MISSION LOG' : 'NEXT MISSION';
   let desc = 'Telemetry confirms safe insertion into target orbital capture envelope.';
-  if (isLast) desc = 'All 8 missions complete. You reached the edge of the solar system!';
+  if (isLast) desc = `All ${LEVELS.length} missions complete. You reached the edge of the solar system!`;
   else if (progress.unlocked > wasUnlocked) desc += ` Mission ${String(currentLevelIndex + 2).padStart(2, '0')} unlocked.`;
   document.getElementById('victoryDesc').textContent = desc;
 

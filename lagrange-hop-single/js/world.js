@@ -8,6 +8,12 @@ function getCoords(obj) {
   };
 }
 
+// The probe counts as lost this far outside the world rectangle (shared by the flight and the preview)
+const LOST_MARGIN = 200;
+function isOutOfBounds(x, y) {
+  return x < -LOST_MARGIN || x > WORLD_W + LOST_MARGIN || y < -LOST_MARGIN || y > WORLD_H + LOST_MARGIN;
+}
+
 // Everything with an orbitCenter (moons and patrolling asteroids) moves orbitSpeed radians per tick
 function orbiters() {
   return currentLevel.bodies.concat(currentLevel.hazards).filter(o => o.orbitCenter && o.orbitSpeed);

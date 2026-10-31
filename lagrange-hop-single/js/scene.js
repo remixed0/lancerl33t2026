@@ -303,17 +303,20 @@ function initScene() {
   function mountVoyager(gltf) {
     const model = gltf.scene;
     model.name = 'Voyager';
+    // Rotate to match the core's orientation (-Math.PI/2 on Z) so that when the probe
+    // group rotates to face the velocity vector, the Voyager points in the launch direction.
+    // Done before measuring so the centring below uses the rotated bounds.
+    model.rotation.z = -Math.PI / 2;
+    model.updateMatrixWorld(true);
     // Normalise scale and centre so it replaces the low-poly stand-in at the same visual size.
     const box = new THREE.Box3().setFromObject(model);
     const size = box.getSize(new THREE.Vector3());
     const maxDim = Math.max(size.x, size.y, size.z) || 1;
     model.scale.setScalar((probe.radius * 7) / maxDim);
+    model.updateMatrixWorld(true);
     box.setFromObject(model);
     const center = box.getCenter(new THREE.Vector3());
     model.position.sub(center);
-    // Rotate to match the core's orientation (-Math.PI/2 on Z) so that when the probe
-    // group rotates to face the velocity vector, the Voyager points in the launch direction.
-    model.rotation.z = -Math.PI / 2;
     probeGroup.add(model);
     probeGroup.userData.lowPoly.forEach((part) => { part.visible = false; });
   }

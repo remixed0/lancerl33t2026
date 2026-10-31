@@ -14,7 +14,7 @@ const PLANET_STYLES = {
   Triton:    { kind: 'rock', paint: 'icy',      atmo: '#ffd6e0', tilt: 0.3 },
   Phobos:    { kind: 'rock', paint: 'asteroid', atmo: null,      tilt: 0.3 },
   Deimos:    { kind: 'rock', paint: 'asteroid', atmo: null,      tilt: 0.3 },
-  Nereid:    { kind: 'rock', paint: 'icy',      atmo: null,      tilt: 0.3 },
+  Titania:   { kind: 'rock', paint: 'icy',      atmo: null,      tilt: 0.3 },
   Venus:   { kind: 'gas', atmo: '#ffe2a0', tilt: 0.3,
              gas: { c1: '#ecd9a4', c2: '#cfae74', c3: '#f8f0d8', bands: 5, turb: 7, flow: 0.12, spot: 0 } },
   Titan:   { kind: 'gas', atmo: '#ffb060', tilt: 0.3,
