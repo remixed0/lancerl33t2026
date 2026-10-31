@@ -175,6 +175,8 @@
   let mood = '';
   let moodLabel = '';
   let forced = null; // test hook: AlienMirror.force({ smileL: 1, ... })
+  let speechFace = null;
+  let speechFaceUntil = 0;
 
   function status(text) { $('status').textContent = text; }
   function renderButtons() {
@@ -386,6 +388,187 @@
   });
   renderVoice();
 
+  // ---------- Verity's reactions to the page ----------
+  const PAGE_LINES = {
+    button: ['Ooh, you pressed {label}!', '{label}? Good choice!', 'Click! {label} it is.'],
+    link: ['Off to {label}? Have a safe trip!', 'Ooh, a link! {label} looks interesting.'],
+    toggle: ['{state} {label}. Got it!'],
+    focus: ['Typing time! What will you put in {label}?'],
+    typed: ['Nice typing! {label} is looking good.', 'Done with {label}? Looks great from here.'],
+    submit: ['Form sent! Woohoo!', "Submitted! You're on a roll."],
+    rage: ['Whoa, easy there! Is something not working?', 'So many clicks! Want me to call tech support on my planet?'],
+    bottom: ['You made it all the way to the bottom! Impressive scrolling.'],
+    copy: ['Copying that? Smart move, Earthling.'],
+    idle: ["Still there, Earthling? I'm getting lonely."],
+    back: ['Welcome back! I missed you.'],
+    error: ["Uh oh, something broke on this page. Don't worry, it wasn't you!"]
+  };
+  const REACT_FACE = {
+    button: { smileL: 0.8, smileR: 0.8, squintL: 0.25, squintR: 0.25 },
+    link: { jawOpen: 0.4, browInnerUp: 0.8, wideL: 0.6, wideR: 0.6 },
+    toggle: { smileL: 0.7, smileR: 0.7 },
+    focus: { browInnerUp: 0.4, smileL: 0.4, smileR: 0.4 },
+    typed: { smileL: 0.7, smileR: 0.7, squintL: 0.2, squintR: 0.2 },
+    submit: { smileL: 0.9, smileR: 0.9, squintL: 0.3, squintR: 0.3 },
+    rage: { jawOpen: 0.5, browInnerUp: 0.9, wideL: 0.7, wideR: 0.7 },
+    bottom: { jawOpen: 0.35, browInnerUp: 0.7, wideL: 0.5, wideR: 0.5 },
+    copy: { blinkR: 1, smileL: 0.5, smileR: 0.7 },
+    idle: { browInnerUp: 0.7, frownL: 0.5, frownR: 0.5 },
+    back: { smileL: 0.8, smileR: 0.8 },
+    error: { browInnerUp: 0.8, frownL: 0.6, frownR: 0.6 }
+  };
+  const IMPORTANT = new Set(['submit', 'rage', 'error']);
+  let lastSpokeAt = -100;
+  let lastActivity = performance.now() / 1000;
+  let idleSaid = false;
+  let hiddenAt = 0;
+  let bottomSaid = false;
+  const recentClicks = [];
+  const typedFields = new WeakSet();
+  const typingTimers = new WeakMap();
+
+  function veritySay(text, moodName) {
+    const line = String(text || '').trim();
+    if (!line) return;
+    const m = moodName && REACT_FACE[moodName] ? moodName : 'happy';
+    speechFace = REACT_FACE[m];
+    speechFaceUntil = performance.now() / 1000 + 3.2;
+    alien.setMood(m === 'sad' ? 'sad' : m === 'surprised' ? 'surprised' : m === 'wink' ? 'wink' : m === 'angry' ? 'angry' : 'happy');
+    voice.speak(line, true);
+  }
+
+  function react(event, data) {
+    if (!vs.enabled) return;
+    const t = performance.now() / 1000;
+    const important = IMPORTANT.has(event);
+    if (!important && (t - lastSpokeAt < 7 || voice.speaking())) return;
+    const set = PAGE_LINES[event];
+    if (!set) return;
+    lastSpokeAt = t;
+    const line = pick(set).replace(/\{(\w+)\}/g, (m, k) => (data && data[k]) || '');
+    const moodName = event === 'rage' ? 'surprised' : event === 'idle' || event === 'error' ? 'sad' : event === 'copy' ? 'wink' : 'happy';
+    veritySay(line.charAt(0).toUpperCase() + line.slice(1), moodName);
+  }
+
+  function activity() { lastActivity = performance.now() / 1000; idleSaid = false; }
+
+  function cleanLabel(s) {
+    return String(s || '').replace(/\s+/g, ' ').trim().slice(0, 40) || 'that';
+  }
+
+  function fieldName(el) {
+    const lab = (el.labels && el.labels[0] && el.labels[0].textContent) ||
+      el.getAttribute('aria-label') || el.getAttribute('placeholder') || el.name || 'that field';
+    return cleanLabel(lab.replace(/[*:]/g, ''));
+  }
+
+  // Ignore Verity's own controls so they don't talk over the person using them
+  function ownControl(el) {
+    return !!(el && el.closest && (el.closest('#voicePanel') || el.closest('#sayForm') || el.closest('#pgSay')));
+  }
+
+  document.addEventListener('click', (ev) => {
+    activity();
+    if (ownControl(ev.target)) return;
+    const t = performance.now() / 1000;
+    recentClicks.push({ t, x: ev.clientX, y: ev.clientY });
+    while (recentClicks.length && t - recentClicks[0].t > 1.5) recentClicks.shift();
+    if (recentClicks.length >= 4 && recentClicks.every((c) => Math.hypot(c.x - ev.clientX, c.y - ev.clientY) < 60)) {
+      recentClicks.length = 0;
+      react('rage');
+      return;
+    }
+    const el = ev.target.closest('a[href], button, [role="button"], input[type="submit"], input[type="button"], input[type="checkbox"], input[type="radio"], summary');
+    if (!el) return;
+    if (el.matches('input[type="checkbox"], input[type="radio"]')) {
+      react('toggle', { label: fieldName(el), state: el.checked ? 'Checked' : 'Unchecked' });
+    } else if (el.matches('a[href]')) {
+      react('link', { label: cleanLabel(el.getAttribute('aria-label') || el.textContent) });
+    } else if (!el.matches('[type="submit"]') && !(el.tagName === 'BUTTON' && el.form && el.type === 'submit')) {
+      react('button', { label: cleanLabel(el.getAttribute('aria-label') || el.textContent || el.value) });
+    }
+  }, true);
+
+  document.addEventListener('focusin', (ev) => {
+    const el = ev.target;
+    if (ownControl(el) || !el.matches || !el.matches('input:not([type="password"]):not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]), textarea')) return;
+    if (!typedFields.has(el)) react('focus', { label: fieldName(el) });
+  });
+  document.addEventListener('input', (ev) => {
+    activity();
+    const el = ev.target;
+    if (ownControl(el) || !el.matches || !el.matches('input:not([type="password"]), textarea')) return;
+    clearTimeout(typingTimers.get(el));
+    typingTimers.set(el, setTimeout(() => {
+      if (typedFields.has(el)) return;
+      typedFields.add(el);
+      react('typed', { label: fieldName(el) });
+    }, 1500));
+  });
+  document.addEventListener('submit', (ev) => { if (!ownControl(ev.target)) react('submit'); }, true);
+  document.addEventListener('copy', () => { activity(); react('copy'); });
+
+  window.addEventListener('pointermove', activity, { passive: true });
+  window.addEventListener('keydown', activity);
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { hiddenAt = performance.now() / 1000; voice.stop(); }
+    else if (hiddenAt && performance.now() / 1000 - hiddenAt > 8) { lastSpokeAt = -100; react('back'); }
+  });
+  window.addEventListener('error', () => react('error'));
+  window.addEventListener('unhandledrejection', () => react('error'));
+  setInterval(() => {
+    if (!document.hidden && !idleSaid && performance.now() / 1000 - lastActivity > 45) { idleSaid = true; react('idle'); }
+  }, 5000);
+
+  // ---------- Playground drawer ----------
+  const playground = $('playground');
+  playground.addEventListener('scroll', () => {
+    activity();
+    if (playground.scrollHeight < playground.clientHeight + 120) return;
+    const atBottom = playground.scrollTop + playground.clientHeight >= playground.scrollHeight - 40;
+    if (atBottom && !bottomSaid) { bottomSaid = true; react('bottom'); }
+    if (playground.scrollTop < playground.scrollHeight / 3) bottomSaid = false;
+  }, { passive: true });
+
+  function openPlayground() {
+    playground.classList.remove('hidden');
+    $('playgroundBtn').setAttribute('aria-expanded', 'true');
+  }
+  function closePlayground() {
+    playground.classList.add('hidden');
+    $('playgroundBtn').setAttribute('aria-expanded', 'false');
+  }
+  $('playgroundBtn').addEventListener('click', () => {
+    if (playground.classList.contains('hidden')) openPlayground(); else closePlayground();
+  });
+  $('pgClose').addEventListener('click', closePlayground);
+  $('pgForm').addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    $('pgNote').textContent = 'Message "sent" (this demo sends nothing).';
+    ev.target.reset();
+  });
+  $('pgBreak').addEventListener('click', () => {
+    setTimeout(() => { throw new Error('Demo error: something broke on purpose'); }, 0);
+  });
+  $('pgSay').addEventListener('click', () => {
+    veritySay('The page asked me to say this. Hello from the code!', 'happy');
+  });
+
+  // The site shell (Prompt Verity tab) talks to the head through postMessage
+  window.addEventListener('message', (ev) => {
+    const d = ev.data;
+    if (!d || d.type !== 'verity-say') return;
+    veritySay(d.text, d.mood);
+  });
+
+  window.Verity = {
+    say: veritySay,
+    react,
+    openPlayground,
+    closePlayground,
+    get speaking() { return voice.speaking(); }
+  };
+
   // ---------- Loop ----------
   let last = performance.now();
   function loop(now) {
@@ -399,7 +582,8 @@
       else if (face === null && time - lastFaceAt > 0.6) faceTarget = null;
     }
     const seeing = tracker.running && faceTarget && time - lastFaceAt < 0.6;
-    let target = forced || (seeing ? faceTarget : idle(time, !tracker.running));
+    const speech = speechFace && time < speechFaceUntil ? speechFace : null;
+    let target = forced || speech || (seeing ? faceTarget : idle(time, !tracker.running));
 
     const m = moodOf(target);
     if (m !== mood) { mood = m; alien.setMood(m); }

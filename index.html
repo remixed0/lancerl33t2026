@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verity — Game &amp; Alien Companion</title>
+  <meta name="description" content="Verity, a 3D alien companion who copies your face and talks, plus Lagrange Hop, a gravity-assist puzzle game. Play, make faces, or prompt Verity.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="site/site.css">
+</head>
+<body data-tab="game">
+  <header class="site-header">
+    <div class="brand">VERITY<span>.</span></div>
+    <nav class="tabs" role="tablist" aria-label="Site sections">
+      <button class="tab" role="tab" id="tab-game" aria-controls="gameFrame" aria-selected="true" data-tab="game">🚀 Game</button>
+      <button class="tab" role="tab" id="tab-verity" aria-controls="verityFrame" aria-selected="false" data-tab="verity">👽 Verity</button>
+      <button class="tab" role="tab" id="tab-prompt" aria-controls="promptPanel" aria-selected="false" data-tab="prompt">💬 Prompt Verity</button>
+    </nav>
+    <span class="tag">gravity · faces · conversation</span>
+  </header>
+
+  <main>
+    <iframe id="gameFrame" class="frame" title="Lagrange Hop, a gravity-assist puzzle game"></iframe>
+    <iframe id="verityFrame" class="frame" title="Verity, the 3D alien companion"></iframe>
+
+    <section id="promptPanel" class="prompt-panel" role="tabpanel" aria-labelledby="tab-prompt">
+      <div class="prompt-head">
+        <span>💬 PROMPT VERITY</span>
+        <button type="button" id="promptClose" class="prompt-x" aria-label="Close chat and return to Verity">✕</button>
+      </div>
+      <div id="promptLog" class="prompt-log" role="log" aria-live="polite"></div>
+      <form id="promptForm" class="prompt-form" autocomplete="off">
+        <input id="promptInput" type="text" maxlength="500" placeholder="Ask Verity anything…" aria-label="Prompt for Verity">
+        <button id="promptSend" type="submit">SEND</button>
+      </form>
+      <p class="prompt-note">Local Ollama · replies are spoken aloud by Verity</p>
+    </section>
+  </main>
+
+  <script src="site/prompt.js"></script>
+</body>
+</html>

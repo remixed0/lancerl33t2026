@@ -3,22 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Alien Head 3D</title>
-  <meta name="description" content="A 3D alien head that copies your facial expressions through your webcam.">
+  <title>Verity — Alien Head 3D</title>
+  <meta name="description" content="Verity is a 3D alien companion. She copies your facial expressions through your webcam, talks, and reacts to what you do on the page.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Inter:wght@400;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=6">
+  <link rel="stylesheet" href="css/style.css?v=7">
 </head>
 <body>
-  <canvas id="scene" aria-label="3D alien head"></canvas>
+  <canvas id="scene" aria-label="Verity, a 3D alien head"></canvas>
 
   <header class="top">
     <div class="brand">
-      <h1>ALIEN HEAD <span>3D</span></h1>
-      <p>Make a face. The alien makes it too.</p>
+      <h1>VERITY <span>3D</span></h1>
+      <p>Make a face. Verity makes it too.</p>
     </div>
     <div class="top-right">
-      <a class="chip" href="assistant.html" title="Open the Alien Assistant demo">🤖 Assistant demo</a>
+      <button id="playgroundBtn" class="chip" type="button" aria-expanded="false" aria-controls="playground" title="Open the playground">🧪 Playground</button>
       <div id="mood" class="chip" role="status" aria-live="polite">😐 Neutral</div>
     </div>
   </header>
@@ -28,22 +28,66 @@
       <button id="camBtn" class="btn primary">Start camera</button>
       <button id="mirrorBtn" class="btn" title="Mirror: your left side shows on the left">Mirror: on</button>
       <button id="previewBtn" class="btn" title="Show your camera picture">Preview: off</button>
-      <button id="muteBtn" class="btn" title="Alien voice on/off">🔊 Voice: on</button>
+      <button id="muteBtn" class="btn" title="Verity's voice on/off">🔊 Voice: on</button>
       <button id="voiceBtn" class="btn" title="Voice settings">⚙ Voice settings</button>
     </div>
     <form id="sayForm" class="panel say" autocomplete="off">
-      <input id="sayText" type="text" maxlength="300" placeholder="Type something for the alien to say…" aria-label="Text for the alien to say">
+      <input id="sayText" type="text" maxlength="300" placeholder="Type something for Verity to say…" aria-label="Text for Verity to say">
       <button id="sayBtn" class="btn primary" type="submit">Speak</button>
     </form>
-    <p id="status" class="status">Demo mode. Start the camera and the alien copies your face.</p>
+    <p id="status" class="status">Demo mode. Start the camera and Verity copies your face.</p>
     <p class="privacy">Your video stays on this device. Face tracking runs in your browser.</p>
   </footer>
+
+  <!-- Playground: the old assistant demo, now a drawer inside Verity's page -->
+  <aside id="playground" class="playground hidden" aria-label="Playground">
+    <div class="pg-head">
+      <b>PLAYGROUND</b>
+      <button type="button" id="pgClose" class="pg-x" aria-label="Close playground">✕</button>
+    </div>
+    <p class="pg-muted">Poke around. Verity reacts out loud to what you do.</p>
+
+    <section class="pg-card">
+      <h2>Try the form</h2>
+      <p class="pg-muted">Verity notices which field you use, never what you type. Nothing here is sent anywhere.</p>
+      <form id="pgForm" class="pg-form">
+        <label>Your name <input type="text" name="name" placeholder="Zorp"></label>
+        <label>Favorite planet <input type="text" name="planet" placeholder="Neptune"></label>
+        <label>Message <textarea name="message" rows="2" placeholder="Say hi to Verity"></textarea></label>
+        <label class="pg-check"><input type="checkbox" name="news"> Send me space news</label>
+        <button class="pg-btn pg-primary" type="submit">Send message</button>
+        <p id="pgNote" class="pg-muted" role="status"></p>
+      </form>
+    </section>
+
+    <section class="pg-card">
+      <h2>More things to poke</h2>
+      <div class="pg-actions">
+        <button class="pg-btn" type="button">Launch rocket</button>
+        <button class="pg-btn" type="button">Feed the cat</button>
+        <button class="pg-btn" type="button" id="pgBreak">Break something</button>
+        <button class="pg-btn" type="button" id="pgSay">Make Verity say something</button>
+      </div>
+      <p class="pg-muted">Tip: click one button really fast four times. Or select some text and press Ctrl+C.</p>
+    </section>
+
+    <section class="pg-card">
+      <h2>About Verity</h2>
+      <p class="pg-muted">Verity is the same 3D alien head as the webcam mirror, now with a personality. Her voice uses ElevenLabs (your own key, saved only in your browser) or your browser's free voice. Open <b>⚙ Voice settings</b> to change her character, pitch and speed.</p>
+    </section>
+
+    <section class="pg-card pg-tall">
+      <h2>A long section to scroll through</h2>
+      <p class="pg-muted">The Moon drifts about 3.8 centimeters farther from Earth every year. Jupiter's Great Red Spot is a storm wider than Earth. A day on Venus is longer than its year. Neutron stars can spin hundreds of times a second.</p>
+      <p class="pg-muted">Keep scrolling. Verity will say something when you reach the bottom.</p>
+    </section>
+  </aside>
 
   <video id="video" class="preview hidden" playsinline muted></video>
 
   <form id="voicePanel" class="panel voice-panel hidden" autocomplete="off" aria-label="Voice settings">
     <div class="vp-head"><b>VOICE SETTINGS</b><button type="button" id="vClose" class="vp-x" aria-label="Close">✕</button></div>
-    <label class="v-check"><input type="checkbox" id="vOn"> Alien talks</label>
+    <label class="v-check"><input type="checkbox" id="vOn"> Verity talks</label>
     <label class="v-check"><input type="checkbox" id="vReact"> React out loud to my expressions</label>
     <label>Character
       <select id="vPreset">
@@ -83,9 +127,9 @@
   </form>
 
   <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
-  <script src="js/alien-head.js?v=6"></script>
-  <script src="js/face-tracker.js?v=6"></script>
-  <script src="js/voice.js?v=6"></script>
-  <script src="js/main.js?v=6"></script>
+  <script src="js/alien-head.js?v=7"></script>
+  <script src="js/face-tracker.js?v=7"></script>
+  <script src="js/voice.js?v=7"></script>
+  <script src="js/main.js?v=7"></script>
 </body>
 </html>
