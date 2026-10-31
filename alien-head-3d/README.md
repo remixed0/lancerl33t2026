@@ -12,13 +12,15 @@ This repository now serves a **single tabbed site** at the repo root (`index.htm
 - **👽 Verity** – The 3D alien webcam mirror (face tracking, expressions, voice settings).
 - **💬 Prompt Verity** – Chat with Verity via a local Ollama model (`qwen2.5-coder:32b` at `http://127.0.0.1:11434/v1`). She replies in character and speaks the reply aloud. Falls back to canned lines if Ollama is offline.
 
+This folder also contains **Alien Assistant**: the same alien as a widget that lives in the corner of a page and comments out loud on what you do. Click **🧪 Playground** on the Verity page to try it.
+
 ## Run it
 
 - **GitHub Pages (easiest to share):** repo → **Settings** → **Pages** → deploy from the `main` branch, `/ (root)`. Open the link it gives you.
 - **VS Code:** install the **Live Server** extension, right‑click `index.html` → **Open with Live Server**.
 - **Double‑click `index.html`:** the site always works. Chrome usually allows the camera from a local file; if not, use one of the options above.
 
-`assistant.html` (moved into the new site as the **Prompt Verity** tab) needs no camera and works the same way.
+Click **Start camera** and allow access. The first time, the face tracker downloads about 13 MB.
 
 ## Controls
 
@@ -43,6 +45,36 @@ This repository now serves a **single tabbed site** at the repo root (`index.htm
 
 Your video never leaves your computer. Face tracking runs inside the browser with WebAssembly. The page only downloads the tracking library and model; it never uploads anything.
 
+## Alien Assistant
+
+The **🧪 Playground** drawer on the main page is the demo for the widget version of the same alien. The alien watches what you do and comments out loud: clicks, form fields, scrolling, copying, idling, leaving the tab and coming back, rage clicks and page errors. It never reads what you type, only which field you used, and it ignores password fields.
+
+### Add it to any page
+
+Copy the `assistant/` folder next to your page and add one tag before `</body>`:
+
+```html
+<script src="assistant/alien-assistant.js" defer></script>
+```
+
+It loads three.js from a CDN and reuses this project's `js/alien-head.js` and `js/voice.js`, so there is only one copy of the head and the voice code. Your page's scripts can make it talk too:
+
+```js
+AlienAssistant.say('Your order is on its way!', 'happy'); // moods: happy, surprised, sad, wink, angry
+AlienAssistant.openSettings();
+```
+
+### Settings (the ⚙ next to the alien)
+
+- **Speak out loud** and **Show speech bubbles** (either one alone works too: bubbles only, or voice only)
+- **How chatty:** Quiet (only important things), Normal, or Chatty
+- **React when I…** clicks, typing, scrolling and copying, idling and leaving the tab
+- **Character:** 👽 Squeaky alien, ⚔️ Warrior alien (Klingon-style, deep voice with a growl), 🤖 Robot alien, or Custom
+- **Voice engine, ElevenLabs API key, Voice, Effect, Pitch, Speed, Volume**
+- **Corner:** bottom right or bottom left
+
+The 🔊 button mutes it, and the − button hides it (a small 👽 button brings it back). Everything works with the keyboard; **Esc** closes the settings. Settings are remembered in your browser under the `alienAssistant` key; the voice settings are shared with the main page (`alienHeadVoice`).
+
 ## How it works
 
 - **Face tracking (`js/face-tracker.js`)**: [MediaPipe Face Landmarker](https://ai.google.dev/edge/mediapipe/solutions/vision/face_landmarker) gives 52 expression scores per frame (`eyeBlinkLeft`, `mouthSmileRight`, `jawOpen`, `browInnerUp`, ...) plus a head‑pose matrix. Instead of trusting which side "Left" means, it checks the blink scores against how open each eye actually is in the picture.
@@ -53,16 +85,16 @@ Your video never leaves your computer. Face tracking runs inside the browser wit
 ## Project structure
 
 ```
-index.html                tabbed site shell (Game / Verity / Prompt Verity)
-css/style.css             shared site styles
-site/prompt.js            Prompt Verity chat + Ollama API
-site/site.css             tab and chat layout styles
-js/alien-head.js          the 3D alien and its expressions (shared by both pages)
+index.html                webcam app: page, buttons and the Playground drawer
+css/style.css             webcam app and Playground styles
+js/alien-head.js          the 3D alien and its expressions (shared with the widget)
 js/face-tracker.js        webcam + MediaPipe face tracking
-js/voice.js               the alien's voice (ElevenLabs or browser speech) and lip sync (shared)
-js/main.js                scene, demo mode, face‑to‑alien mapping, reactions
+js/voice.js               the alien's voice (ElevenLabs or browser speech) and lip sync (shared with the widget)
+js/main.js                scene, demo mode, face-to-alien mapping, reactions
 assistant/alien-assistant.js   the widget: loader, reactions, settings panel
 assistant/alien-assistant.css  widget styles (all scoped to .aa-root)
 ```
 
-Both pages use the same `js/alien-head.js` and `js/voice.js`; the widget loads them itself with relative `../js/` URLs.
+The tabbed site shell lives at the repo root: `index.html`, `site/prompt.js` (tabs and the Prompt Verity chat) and `site/site.css`.
+
+The webcam app and the widget use the same `js/alien-head.js` and `js/voice.js`; the widget loads them itself with relative `../js/` URLs.

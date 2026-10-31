@@ -64,7 +64,7 @@ function updateAimPanel() {
   if (gameState === 'FLYING') {
     text = 'In flight';
   } else if (gameState !== 'AIMING') {
-    text = 'Press RESET to fly again';
+    text = 'Press RESET (R) to fly again';
   } else if (autopilot && autopilot.phase === 'search') {
     const pct = Math.round(100 * autopilot.idx / autopilot.shots.length);
     text = `AUTOPILOT: checking launch window ${autopilot.window + 1}/${AUTOPILOT_WINDOWS}${autopilot.refined ? ' (refining)' : ''}... ${pct}%`;
@@ -176,8 +176,7 @@ document.getElementById('aiChatForm').addEventListener('submit', (e) => {
   const input = document.getElementById('aiChatInput');
   const text = (input.value || '').trim();
   if (!text) return;
-  aiChatAddMsg('user', text);
-  input.value = '';
+  input.value = ''; // aiChatSend() adds the message to the log
   aiChatSend(text);
 });
 document.getElementById('aiChatClose').addEventListener('click', () => { aiChatOpen = false; aiChatPanel.classList.add('hidden'); });
@@ -229,10 +228,7 @@ resetBtn.addEventListener('click', () => {
   loadLevel(0);
 });
 
-document.getElementById('modalRetryBtn').addEventListener('click', () => {
-  resetProbeToEarth();
-  document.getElementById('victoryModal').classList.add('hidden');
-});
+document.getElementById('modalRetryBtn').addEventListener('click', resetFromUi);
 
 document.getElementById('modalNextBtn').addEventListener('click', () => {
   if (currentLevelIndex === LEVELS.length - 1) {

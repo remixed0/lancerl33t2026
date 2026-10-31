@@ -6,3 +6,8 @@ LICENSE
 README.md
 Dockerfile
 .dockerignore
+START HERE.txt
+lines.csv
+**/.vscode
+**/*.bat
+**/*.ps1

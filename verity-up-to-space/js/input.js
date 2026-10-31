@@ -77,6 +77,8 @@ window.addEventListener('keydown', (e) => {
   }
   // A focused slider already handles arrows itself, and a focused button handles Space/Enter
   const tag = e.target.tagName;
+  // Typing in a text box (the AI chat) must not trigger game shortcuts
+  if (tag === 'TEXTAREA' || e.target.isContentEditable || (tag === 'INPUT' && e.target.type !== 'range')) return;
   if (tag === 'INPUT' && k.startsWith('Arrow')) return;
   if (tag === 'BUTTON' && (k === ' ' || k === 'Enter')) return;
   const step = e.shiftKey ? 4 : 1;
