@@ -311,6 +311,9 @@ function initScene() {
     box.setFromObject(model);
     const center = box.getCenter(new THREE.Vector3());
     model.position.sub(center);
+    // Rotate to match the core's orientation (-Math.PI/2 on Z) so that when the probe
+    // group rotates to face the velocity vector, the Voyager points in the launch direction.
+    model.rotation.z = -Math.PI / 2;
     probeGroup.add(model);
     probeGroup.userData.lowPoly.forEach((part) => { part.visible = false; });
   }
