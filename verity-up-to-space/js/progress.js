@@ -111,10 +111,12 @@ function openMissionLog() {
   document.getElementById('missionLog').classList.remove('-translate-x-full');
   document.getElementById('missionLog').setAttribute('aria-hidden', 'false');
   document.getElementById('missionLogBackdrop').classList.remove('hidden');
+  music.muffle(true);
 }
 
 function closeMissionLog() {
   document.getElementById('missionLog').classList.add('-translate-x-full');
   document.getElementById('missionLog').setAttribute('aria-hidden', 'true');
   document.getElementById('missionLogBackdrop').classList.add('hidden');
+  music.muffle(false);
 }

@@ -1,4 +1,4 @@
-// Verity Up To Space 3D: Synthesized sound effects (Web Audio API, no audio files).
+// Verity Up To Space 3D: Synthesized sound effects (Web Audio API, no audio files). Background music: js/music.js.
 
 // --- SYNTHESIZED SOUND FX (Web Audio API - No external files) ---
 class SoundFX {

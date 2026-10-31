@@ -19,6 +19,7 @@ A static site (LancerHacks 2026), no build step, plain HTML/CSS/JS:
 - "Lost in space" margin is one constant, `LOST_MARGIN` / `isOutOfBounds()` in `js/world.js`, shared by the flight and the preview.
 - Level data (`js/levels.js`): moons take position from `orbitCenter` + `orbitRadius` + `angle`, and their `x`/`y` equals the orbit centre. `patrol()` rocks circle their own `x`/`y`. Planet looks in `js/planets.js` `PLANET_STYLES` are keyed by body **name**, so renaming a body means renaming its style entry too.
 - Reset wording everywhere: **RESET** / **RESET PROBE**, key `R`.
+- Music: `js/music.js` (global `music`). It loops `assets/spaceverity.mp3` via Web Audio on `sfx.ctx`: source → low-pass → duck gain → volume. `js/verity.js` calls `music.duck()` on `Verity-line` / `Verity-done` / `stop()` (with a safety timer, since an interrupted line sends no done). `openMissionLog` / `closeMissionLog` call `music.muffle()`, and the SFX button calls `music.setEnabled()`. Use `music.state()` in the console to inspect levels. Top-level `const`s aren't `window` properties, so tests must use `win.eval('music')`.
 
 ## Deploy / test
 - `Dockerfile`: nginx:1.27-alpine, explicit `COPY` of `index.html`, `site/`, `verity-up-to-space/`, `alien-head-3d/`, port 80. `.dockerignore` strips docs, launchers and dev files. Run with `docker build -t verity . && docker run -p 8080:80 verity`.

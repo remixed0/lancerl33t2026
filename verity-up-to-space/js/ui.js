@@ -260,7 +260,8 @@ btnAudio.addEventListener('click', () => {
   sfx.enabled = !sfx.enabled;
   audioLabel.textContent = sfx.enabled ? 'SFX ON' : 'SFX OFF';
   btnAudio.classList.toggle('text-slate-500', !sfx.enabled);
-  Verity.mute(!sfx.enabled); // the sound toggle mutes Verity's voice too
+  Verity.mute(!sfx.enabled); // the sound toggle mutes Verity's voice and the music too
+  music.setEnabled(sfx.enabled);
 });
 
 // Handle Window Resize

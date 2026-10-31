@@ -35,8 +35,10 @@ const Verity = (() => {
       bubble.textContent = d.text;
       bubble.classList.add('show');
       hideBubble(Math.max(4000, d.text.length * 75) + 4000); // fallback if 'Verity-done' never comes
+      music.duck(true, Math.max(4000, d.text.length * 75) + 2000); // same kind of fallback for the music
     } else if (d.type === 'Verity-done') {
       hideBubble(1500);
+      music.duck(false);
       for (let i = waiting.length - 1; i >= 0; i--) {
         if (waiting[i].group === d.group) waiting.splice(i, 1)[0].resolve(true);
       }
@@ -77,7 +79,7 @@ const Verity = (() => {
         send({ event: 'line', group });
       });
     },
-    stop() { send({ event: 'stop' }); hideBubble(0); },
+    stop() { send({ event: 'stop' }); hideBubble(0); music.duck(false); },
     set quiet(v) { quiet = !!v; },
     get quiet() { return quiet; },
     ready: readyPromise

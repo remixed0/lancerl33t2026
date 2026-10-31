@@ -16,6 +16,7 @@ This folder contains the original Verity Up To Space game build. It is now serve
     - **RESET** (`R`, also **RESET PROBE** in the top bar): back to Earth; the last flight stays as a faint ghost path.
   - Predicted path: glowing dots ending in a green ring (capture), red ✕ (crash) or grey dot (miss); beacons it will collect light up cyan.
   - **CAM** button or `C` key cycles TOP / CHASE / ISO camera views.
+  - Background music starts on the first click or key press. It fades down while Verity talks and is muffled (low-pass) while the Mission Log is open. **SFX ON/OFF** mutes it along with the sound effects and Verity.
   - Object names are hidden to reduce clutter; `L` toggles them.
   - Moons and some asteroids move (patrol routes are drawn as faint red dashed circles), so launch timing matters; the preview and autopilot account for it.
   - Click the mission panel (top left) to open the **Mission Log**: every mission's status and best stars. `Esc` closes it.
@@ -27,6 +28,7 @@ index.html              page markup (HUD, aim bar, sidebar, modals) + script tag
 css/style.css           custom styles (layout utilities come from Tailwind)
 js/config.js            constants, shared game state and NASA mission data
 js/sound.js             synthesized sound effects
+js/music.js             background music: loops assets/spaceverity.mp3, ducks while Verity talks, low-pass while the Mission Log is open
 js/levels.js            the eight missions (edit here to change layouts)
 js/world.js             coordinates, map edges, orbit movement, world <-> 3D conversion
 js/physics.js           gravity, trajectory prediction, launch‑aim maths
@@ -43,6 +45,7 @@ js/tutorial.js          Verity's Mission 1 tutorial
 js/main.js              main loop and start‑up (loaded last)
 verity/                 Verity herself: 3D alien head + 57 voice lines (shown in an iframe)
 assets/Voyager.glb      NASA Voyager model used for the probe (NASA's CDN is the fallback)
+assets/spaceverity.mp3  background music (gapless loop, 56 s)
 ```
 
 ## Tutorial
